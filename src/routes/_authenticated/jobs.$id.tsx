@@ -1,13 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getJob, generateAndSaveLetter, generateApplicationPack } from "@/lib/jobs.functions";
+import { getJob, generateAndSaveLetter, generateApplicationPack, updateApplicationDraft, sendApplicationEmail } from "@/lib/jobs.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ExternalLink, Loader2, Sparkles, Mail, Phone, FileText, ClipboardList, Copy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, ExternalLink, Loader2, Sparkles, Mail, Phone, FileText, ClipboardList, Copy, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/jobs/$id")({ component: JobDetail });
 
@@ -16,18 +20,52 @@ function JobDetail() {
   const fetchJob = useServerFn(getJob);
   const gen = useServerFn(generateAndSaveLetter);
   const genPack = useServerFn(generateApplicationPack);
+  const updateDraft = useServerFn(updateApplicationDraft);
+  const sendEmail = useServerFn(sendApplicationEmail);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({ queryKey: ["job", id], queryFn: () => fetchJob({ data: { id } }) });
 
+  const [to, setTo] = useState("");
+  const [cc, setCc] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [letter, setLetter] = useState("");
+  const [includeCv, setIncludeCv] = useState(true);
+
+  useEffect(() => {
+    if (data?.job?.application_email && !to) setTo(data.job.application_email);
+    if (data?.application) {
+      if (!subject) setSubject(data.application.email_subject ?? "");
+      if (!body) setBody(data.application.email_body ?? "");
+      if (!letter) setLetter(data.application.cover_letter ?? "");
+    }
+  }, [data]);
+
   const genMut = useMutation({
     mutationFn: () => gen({ data: { jobId: id } }),
-    onSuccess: () => { toast.success("Cover letter generated and saved to Drive"); qc.invalidateQueries({ queryKey: ["job", id] }); },
+    onSuccess: (r) => {
+      toast.success("Draft generated and saved to Drive");
+      setSubject(r.application.email_subject ?? "");
+      setBody(r.application.email_body ?? "");
+      setLetter(r.application.cover_letter ?? "");
+      qc.invalidateQueries({ queryKey: ["job", id] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
   const packMut = useMutation({
     mutationFn: () => genPack({ data: { jobId: id } }),
     onSuccess: () => { toast.success("Application pack ready in Drive"); qc.invalidateQueries({ queryKey: ["job", id] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const saveMut = useMutation({
+    mutationFn: () => updateDraft({ data: { applicationId: data!.application!.id, email_subject: subject, email_body: body, cover_letter: letter } }),
+    onSuccess: () => { toast.success("Draft saved"); qc.invalidateQueries({ queryKey: ["job", id] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const sendMut = useMutation({
+    mutationFn: () => sendEmail({ data: { applicationId: data!.application!.id, to, cc: cc || undefined, subject, body, includeCv } }),
+    onSuccess: () => { toast.success("Email sent from your Gmail"); qc.invalidateQueries({ queryKey: ["job", id] }); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -126,14 +164,60 @@ function JobDetail() {
         </div>
       </div>
 
-      {app?.cover_letter && (
-        <Card className="p-5 mt-4">
-          <h2 className="font-semibold mb-3">Generated cover letter</h2>
-          <Textarea value={app.cover_letter ?? ""} readOnly rows={12} className="text-sm" />
-          <h3 className="font-medium mt-4 mb-1">Email subject</h3>
-          <div className="text-sm bg-muted rounded p-2">{app.email_subject}</div>
-          <h3 className="font-medium mt-3 mb-1">Email body</h3>
-          <Textarea value={app.email_body ?? ""} readOnly rows={6} className="text-sm" />
+      {app?.cover_letter && app?.application_type !== "form" && (
+        <Card className="p-5 mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Review &amp; send application</h2>
+            {app.status === "sent" && (
+              <Badge className="gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Sent {app.sent_at ? new Date(app.sent_at).toLocaleString() : ""}</Badge>
+            )}
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">To</Label>
+              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="recruiter@company.com" />
+            </div>
+            <div>
+              <Label className="text-xs">Cc (optional)</Label>
+              <Input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="" />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Subject</Label>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </div>
+
+          <div>
+            <Label className="text-xs">Email body</Label>
+            <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} className="text-sm" />
+          </div>
+
+          <div>
+            <Label className="text-xs">Cover letter (sent inside the email or as Drive backup)</Label>
+            <Textarea value={letter} onChange={(e) => setLetter(e.target.value)} rows={12} className="text-sm" />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox id="cv" checked={includeCv} onCheckedChange={(v) => setIncludeCv(!!v)} />
+            <Label htmlFor="cv" className="text-sm cursor-pointer">Attach my CV from profile</Label>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Button variant="outline" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+              {saveMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save draft
+            </Button>
+            <Button onClick={() => sendMut.mutate()} disabled={sendMut.isPending || !to || !subject || !body}>
+              {sendMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+              Send from my Gmail
+            </Button>
+            {app.drive_url && (
+              <a href={app.drive_url} target="_blank" rel="noreferrer" className="text-sm text-primary inline-flex items-center gap-1 ml-auto">
+                <FileText className="w-3.5 h-3.5" /> Backup in Drive
+              </a>
+            )}
+          </div>
         </Card>
       )}
 
