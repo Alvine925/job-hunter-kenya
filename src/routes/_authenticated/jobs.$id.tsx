@@ -20,18 +20,52 @@ function JobDetail() {
   const fetchJob = useServerFn(getJob);
   const gen = useServerFn(generateAndSaveLetter);
   const genPack = useServerFn(generateApplicationPack);
+  const updateDraft = useServerFn(updateApplicationDraft);
+  const sendEmail = useServerFn(sendApplicationEmail);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({ queryKey: ["job", id], queryFn: () => fetchJob({ data: { id } }) });
 
+  const [to, setTo] = useState("");
+  const [cc, setCc] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [letter, setLetter] = useState("");
+  const [includeCv, setIncludeCv] = useState(true);
+
+  useEffect(() => {
+    if (data?.job?.application_email && !to) setTo(data.job.application_email);
+    if (data?.application) {
+      if (!subject) setSubject(data.application.email_subject ?? "");
+      if (!body) setBody(data.application.email_body ?? "");
+      if (!letter) setLetter(data.application.cover_letter ?? "");
+    }
+  }, [data]);
+
   const genMut = useMutation({
     mutationFn: () => gen({ data: { jobId: id } }),
-    onSuccess: () => { toast.success("Cover letter generated and saved to Drive"); qc.invalidateQueries({ queryKey: ["job", id] }); },
+    onSuccess: (r) => {
+      toast.success("Draft generated and saved to Drive");
+      setSubject(r.application.email_subject ?? "");
+      setBody(r.application.email_body ?? "");
+      setLetter(r.application.cover_letter ?? "");
+      qc.invalidateQueries({ queryKey: ["job", id] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
   const packMut = useMutation({
     mutationFn: () => genPack({ data: { jobId: id } }),
     onSuccess: () => { toast.success("Application pack ready in Drive"); qc.invalidateQueries({ queryKey: ["job", id] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const saveMut = useMutation({
+    mutationFn: () => updateDraft({ data: { applicationId: data!.application!.id, email_subject: subject, email_body: body, cover_letter: letter } }),
+    onSuccess: () => { toast.success("Draft saved"); qc.invalidateQueries({ queryKey: ["job", id] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const sendMut = useMutation({
+    mutationFn: () => sendEmail({ data: { applicationId: data!.application!.id, to, cc: cc || undefined, subject, body, includeCv } }),
+    onSuccess: () => { toast.success("Email sent from your Gmail"); qc.invalidateQueries({ queryKey: ["job", id] }); },
     onError: (e: any) => toast.error(e.message),
   });
 
