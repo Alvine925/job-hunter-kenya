@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedFindJobsRouteImport } from './routes/_authenticated/find-jobs'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedApplicationsRouteImport } from './routes/_authenticated/applications'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedFindJobsRoute = AuthenticatedFindJobsRouteImport.update({
   id: '/find-jobs',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/applications': typeof AuthenticatedApplicationsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/find-jobs': typeof AuthenticatedFindJobsRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
 }
 export interface FileRoutesByTo {
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/applications': typeof AuthenticatedApplicationsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/find-jobs': typeof AuthenticatedFindJobsRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
 }
 export interface FileRoutesById {
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/_authenticated/applications': typeof AuthenticatedApplicationsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/find-jobs': typeof AuthenticatedFindJobsRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/jobs/$id': typeof AuthenticatedJobsIdRoute
 }
 export interface FileRouteTypes {
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/applications'
     | '/dashboard'
     | '/find-jobs'
+    | '/profile'
     | '/jobs/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/applications'
     | '/dashboard'
     | '/find-jobs'
+    | '/profile'
     | '/jobs/$id'
   id:
     | '__root__'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/_authenticated/applications'
     | '/_authenticated/dashboard'
     | '/_authenticated/find-jobs'
+    | '/_authenticated/profile'
     | '/_authenticated/jobs/$id'
   fileRoutesById: FileRoutesById
 }
@@ -135,6 +147,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/find-jobs': {
       id: '/_authenticated/find-jobs'
@@ -171,6 +190,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedApplicationsRoute: typeof AuthenticatedApplicationsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFindJobsRoute: typeof AuthenticatedFindJobsRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedJobsIdRoute: typeof AuthenticatedJobsIdRoute
 }
 
@@ -178,6 +198,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedApplicationsRoute: AuthenticatedApplicationsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFindJobsRoute: AuthenticatedFindJobsRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedJobsIdRoute: AuthenticatedJobsIdRoute,
 }
 
