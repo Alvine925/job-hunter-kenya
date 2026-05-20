@@ -88,6 +88,61 @@ function Config() {
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const toggle = (k: string, v: string) => set(k, form[k].includes(v) ? form[k].filter((x: string) => x !== v) : [...form[k], v]);
 
+  const parseCSV = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+  const isActive = (field: string, val: string) => parseCSV(form[field]).map((x) => x.toLowerCase()).includes(val.toLowerCase());
+  const toggleCSV = (field: string, val: string) => {
+    const arr = parseCSV(form[field]);
+    const exists = arr.find((x) => x.toLowerCase() === val.toLowerCase());
+    const next = exists ? arr.filter((x) => x.toLowerCase() !== val.toLowerCase()) : [...arr, val];
+    set(field, next.join(", "));
+  };
+
+  function SuggestionChips({ field, options, label }: { field: string; options: string[]; label: string }) {
+    const [open, setOpen] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const active = parseCSV(form[field]);
+    return (
+      <div className="mt-1.5">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs text-primary hover:underline">
+            {open ? "Hide suggestions" : "Browse suggestions"}
+          </button>
+        </div>
+        {open && (
+          <div ref={scrollRef} className="flex gap-1.5 flex-wrap max-h-40 overflow-y-auto p-2 border rounded-md bg-muted/20">
+            {options.map((opt) => {
+              const on = isActive(field, opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggleCSV(field, opt)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                    on ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
+                  }`}
+                >
+                  {on ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {active.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap mt-2">
+            {active.map((item) => (
+              <span key={item} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20">
+                {item}
+                <button type="button" onClick={() => toggleCSV(field, item)} className="hover:text-destructive"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-3xl">
       <h1 className="text-2xl font-bold mb-1">Configuration</h1>
@@ -119,10 +174,23 @@ function Config() {
           </div>
         </div>
 
-        <div><Label>Target roles (comma-separated)</Label><Input value={form.target_roles} onChange={(e) => set("target_roles", e.target.value)} placeholder="Software Engineer, Data Analyst" /></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><Label>Counties</Label><Input value={form.target_counties} onChange={(e) => set("target_counties", e.target.value)} placeholder="Nairobi, Mombasa" /></div>
-          <div><Label>Target companies (optional)</Label><Input value={form.target_companies} onChange={(e) => set("target_companies", e.target.value)} placeholder="Safaricom, Equity Bank" /></div>
+        <div>
+          <Label>Target roles</Label>
+          <Input value={form.target_roles} onChange={(e) => set("target_roles", e.target.value)} placeholder="Software Engineer, Data Analyst, NGO Program Officer" />
+          <SuggestionChips field="target_roles" options={ROLE_SUGGESTIONS} label="Common roles & industries" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Counties</Label>
+            <Input value={form.target_counties} onChange={(e) => set("target_counties", e.target.value)} placeholder="Nairobi, Mombasa, Kisumu" />
+            <SuggestionChips field="target_counties" options={COUNTY_SUGGESTIONS} label="Kenyan counties" />
+          </div>
+          <div>
+            <Label>Target companies (optional)</Label>
+            <Input value={form.target_companies} onChange={(e) => set("target_companies", e.target.value)} placeholder="Safaricom, Equity Bank, UN Agencies" />
+            <SuggestionChips field="target_companies" options={COMPANY_SUGGESTIONS} label="Top employers & sectors" />
+          </div>
         </div>
 
         <div>
@@ -175,3 +243,4 @@ function Config() {
     </div>
   );
 }
+
