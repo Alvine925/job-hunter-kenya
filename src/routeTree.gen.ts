@@ -18,6 +18,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedConfigurationRouteImport } from './routes/_authenticated/configuration'
 import { Route as AuthenticatedApplicationsRouteImport } from './routes/_authenticated/applications'
 import { Route as AuthenticatedJobsIdRouteImport } from './routes/_authenticated/jobs.$id'
+import { Route as ApiPublicHooksScrapeCronRouteImport } from './routes/api/public/hooks/scrape-cron'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -65,6 +66,12 @@ const AuthenticatedJobsIdRoute = AuthenticatedJobsIdRouteImport.update({
   path: '/jobs/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicHooksScrapeCronRoute =
+  ApiPublicHooksScrapeCronRouteImport.update({
+    id: '/api/public/hooks/scrape-cron',
+    path: '/api/public/hooks/scrape-cron',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/find-jobs': typeof AuthenticatedFindJobsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -85,6 +93,7 @@ export interface FileRoutesByTo {
   '/find-jobs': typeof AuthenticatedFindJobsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,6 +106,7 @@ export interface FileRoutesById {
   '/_authenticated/find-jobs': typeof AuthenticatedFindJobsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/find-jobs'
     | '/profile'
     | '/jobs/$id'
+    | '/api/public/hooks/scrape-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/find-jobs'
     | '/profile'
     | '/jobs/$id'
+    | '/api/public/hooks/scrape-cron'
   id:
     | '__root__'
     | '/'
@@ -130,12 +142,14 @@ export interface FileRouteTypes {
     | '/_authenticated/find-jobs'
     | '/_authenticated/profile'
     | '/_authenticated/jobs/$id'
+    | '/api/public/hooks/scrape-cron'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiPublicHooksScrapeCronRoute: typeof ApiPublicHooksScrapeCronRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -203,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJobsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/hooks/scrape-cron': {
+      id: '/api/public/hooks/scrape-cron'
+      path: '/api/public/hooks/scrape-cron'
+      fullPath: '/api/public/hooks/scrape-cron'
+      preLoaderRoute: typeof ApiPublicHooksScrapeCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -232,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiPublicHooksScrapeCronRoute: ApiPublicHooksScrapeCronRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
