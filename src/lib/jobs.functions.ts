@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchKenyaJobs } from "./firecrawl.server";
 import { aiJson, aiText } from "./ai.server";
 import { findOrCreateFolder, uploadTextFile } from "./drive.server";
+import { sendGmail } from "./gmail.server";
 
 // ---- Scrape and persist matched jobs ----
 export const scrapeJobsForMe = createServerFn({ method: "POST" })
