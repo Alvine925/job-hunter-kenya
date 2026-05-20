@@ -178,6 +178,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({
     full_name: z.string().optional(),
     phone: z.string().optional(),
+    email: z.string().optional(),
     skills: z.array(z.string()).optional(),
     professional_summary: z.string().optional(),
     work_history: z.string().optional(),
@@ -185,6 +186,8 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     desired_roles: z.array(z.string()).optional(),
     preferred_county: z.string().optional(),
     linkedin_url: z.string().optional(),
+    certifications: z.string().optional(),
+    languages: z.string().optional(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -192,3 +195,151 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     if (error) throw error;
     return { profile: upd };
   });
+
+// ---- CV upload + AI extraction ----
+export const saveCvAndExtract = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    storage_path: z.string().min(1),
+    file_name: z.string().min(1),
+    cv_text: z.string().min(20).max(60000),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    // public URL (bucket is private; sign URL for later display)
+    const { data: signed } = await supabase.storage.from("cvs").createSignedUrl(data.storage_path, 60 * 60 * 24 * 7);
+
+    const extracted = await aiJson<{
+      full_name?: string; email?: string; phone?: string; linkedin_url?: string;
+      preferred_county?: string; skills?: string[]; desired_roles?: string[];
+      professional_summary?: string; work_history?: string; education?: string;
+      certifications?: string; languages?: string;
+    }>(
+      `Extract structured profile data from this CV/resume text.\n\nCV TEXT:\n${data.cv_text.slice(0, 30000)}\n\nReturn JSON with keys: full_name, email, phone, linkedin_url, preferred_county (Kenyan county if mentioned), skills (array of strings), desired_roles (array of probable target roles based on experience), professional_summary (2-3 sentence summary), work_history (multi-line string of roles), education (multi-line string), certifications (string), languages (string). Use empty values if unknown.`,
+      "You are a CV parser. Return strict JSON only."
+    );
+
+    const update: any = {
+      cv_storage_path: data.storage_path,
+      cv_url: signed?.signedUrl ?? null,
+      parsed_cv_text: data.cv_text.slice(0, 50000),
+      cv_parsed_at: new Date().toISOString(),
+      full_name: extracted.full_name || undefined,
+      email: extracted.email || undefined,
+      phone: extracted.phone || undefined,
+      linkedin_url: extracted.linkedin_url || undefined,
+      preferred_county: extracted.preferred_county || undefined,
+      skills: extracted.skills?.length ? extracted.skills : undefined,
+      desired_roles: extracted.desired_roles?.length ? extracted.desired_roles : undefined,
+      professional_summary: extracted.professional_summary || undefined,
+      work_history: extracted.work_history || undefined,
+      education: extracted.education || undefined,
+      certifications: extracted.certifications || undefined,
+      languages: extracted.languages || undefined,
+    };
+    Object.keys(update).forEach((k) => update[k] === undefined && delete update[k]);
+
+    const { data: prof, error } = await supabase.from("profiles").update(update).eq("id", userId).select().single();
+    if (error) throw error;
+    return { profile: prof, extracted };
+  });
+
+// ---- Workflow ----
+const workflowSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1).default("My Workflow"),
+  active: z.boolean().default(true),
+  run_time: z.string().default("08:00"),
+  run_days: z.array(z.string()).default(["mon", "tue", "wed", "thu", "fri"]),
+  target_roles: z.array(z.string()).default([]),
+  target_counties: z.array(z.string()).default([]),
+  target_companies: z.array(z.string()).default([]),
+  sources: z.array(z.string()).default([]),
+  job_types: z.array(z.string()).default([]),
+  min_match_score: z.number().int().min(0).max(100).default(70),
+  max_applications: z.number().int().min(1).max(100).default(10),
+  minimum_salary: z.number().int().optional().nullable(),
+  cover_letter_tone: z.string().default("Formal"),
+  auto_apply: z.boolean().default(false),
+});
+
+export const getMyWorkflow = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase.from("workflows").select("*").eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    return { workflow: data };
+  });
+
+export const upsertWorkflow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => workflowSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const row = { ...data, user_id: userId, minimum_salary: data.minimum_salary ?? null };
+    if (data.id) {
+      const { data: upd, error } = await supabase.from("workflows").update(row).eq("id", data.id).eq("user_id", userId).select().single();
+      if (error) throw error;
+      return { workflow: upd };
+    }
+    const { data: ins, error } = await supabase.from("workflows").insert(row).select().single();
+    if (error) throw error;
+    return { workflow: ins };
+  });
+
+// ---- Application Assistant Pack (for HR-SaaS / form-based listings) ----
+export const generateApplicationPack = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ jobId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const [{ data: job }, { data: profile }] = await Promise.all([
+      supabase.from("jobs").select("*").eq("id", data.jobId).eq("user_id", userId).single(),
+      supabase.from("profiles").select("*").eq("id", userId).single(),
+    ]);
+    if (!job || !profile) throw new Error("Missing job or profile");
+
+    const pack = await aiJson<{
+      cover_letter: string;
+      email_subject: string;
+      email_body: string;
+      questions_and_answers: { question: string; answer: string }[];
+      key_facts: { label: string; value: string }[];
+    }>(
+      `Build an Application Assistant Pack for this Kenyan job listing whose application is a web form (no email).\n\nCANDIDATE: ${profile.full_name ?? ""} / ${profile.email ?? ""} / ${profile.phone ?? ""}\nSKILLS: ${(profile.skills ?? []).join(", ")}\nSUMMARY: ${profile.professional_summary ?? ""}\nWORK: ${profile.work_history ?? ""}\nEDUCATION: ${profile.education ?? ""}\n\nJOB: ${job.title} at ${job.company ?? ""}\nDESC: ${(job.description ?? "").slice(0, 4000)}\nREQS: ${job.requirements ?? ""}\n\nReturn JSON with: cover_letter (~300 words), email_subject, email_body (5 sentences), questions_and_answers (array of 8-12 likely form questions like 'Why this role?', 'Years of experience with X?', 'Salary expectation in KES?', 'Notice period?', 'Are you authorised to work in Kenya?', etc. with tailored answers), key_facts (label/value pairs the user copies into single fields: Full name, Email, Phone, LinkedIn, Location, Years of experience, Notice period, Salary expectation, Earliest start date).`,
+      "You are a Kenyan job-application assistant. Return strict JSON only."
+    );
+
+    const packText = `# Application Pack: ${job.title} — ${job.company ?? ""}\n\n## Key Facts (copy into single fields)\n${pack.key_facts.map(f => `- **${f.label}:** ${f.value}`).join("\n")}\n\n## Cover Letter\n${pack.cover_letter}\n\n## Email Subject\n${pack.email_subject}\n\n## Email Body\n${pack.email_body}\n\n## Likely Form Questions\n${pack.questions_and_answers.map((q,i) => `### ${i+1}. ${q.question}\n${q.answer}`).join("\n\n")}\n\n---\nApplication URL: ${job.source_url ?? ""}\n`;
+
+    let driveFileId: string | null = null;
+    let driveUrl: string | null = null;
+    let folderId: string | null = null;
+    try {
+      const root = await findOrCreateFolder("JobHunter KE");
+      folderId = await findOrCreateFolder(`${job.company ?? "Company"} - ${job.title}`.slice(0, 120), root);
+      const up = await uploadTextFile(`Application Pack - ${job.title} - ${new Date().toISOString().slice(0,10)}.md`, packText, folderId);
+      driveFileId = up.id; driveUrl = up.webViewLink;
+    } catch (e) { console.error("Drive pack upload failed:", e); }
+
+    const { data: existing } = await supabase.from("applications").select("id").eq("user_id", userId).eq("job_id", data.jobId).maybeSingle();
+    const row = {
+      user_id: userId, job_id: data.jobId, job_title: job.title, company: job.company,
+      cover_letter: pack.cover_letter, email_subject: pack.email_subject, email_body: pack.email_body,
+      pack_questions: JSON.stringify(pack.questions_and_answers),
+      pack_answers: JSON.stringify(pack.key_facts),
+      application_type: "form" as const,
+      match_score: job.match_score, status: "draft" as const,
+      drive_file_id: driveFileId, drive_url: driveUrl, drive_folder_id: folderId,
+    };
+    if (existing) {
+      const { data: upd, error } = await supabase.from("applications").update(row).eq("id", existing.id).select().single();
+      if (error) throw error;
+      return { application: upd, pack };
+    } else {
+      const { data: ins, error } = await supabase.from("applications").insert(row).select().single();
+      if (error) throw error;
+      return { application: ins, pack };
+    }
+  });
+
