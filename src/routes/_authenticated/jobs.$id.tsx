@@ -46,7 +46,7 @@ function JobDetail() {
             {job.job_type && <Badge variant="outline">{job.job_type}</Badge>}
           </div>
         </div>
-        <Badge variant={job.match_score >= 80 ? "default" : "secondary"} className="text-base px-3 py-1">{job.match_score}% match</Badge>
+        <Badge variant={(job.match_score ?? 0) >= 80 ? "default" : "secondary"} className="text-base px-3 py-1">{job.match_score ?? 0}% match</Badge>
       </div>
 
       <Card className="p-5 mb-4 border-primary/40 bg-primary-soft/30">
