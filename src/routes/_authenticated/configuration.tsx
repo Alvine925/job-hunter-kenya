@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Loader2, Save, Plus, X } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/configuration")({ component: Config });
@@ -16,6 +16,28 @@ export const Route = createFileRoute("/_authenticated/configuration")({ componen
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const SOURCES = ["BrighterMonday","MyJobMag","Fuzu","JobwebKenya","CorporateStaffing"];
 const TYPES = ["Full-time","Part-time","Contract","Internship","Remote"];
+
+const ROLE_SUGGESTIONS = [
+  "Software Engineer","Data Analyst","Project Manager","Sales Representative",
+  "Marketing Manager","Accountant","Human Resources","Administrative Assistant",
+  "NGO Program Officer","NGO Field Coordinator","Research Officer","Finance Officer",
+  "Business Development","Customer Service","Operations Manager","Supply Chain",
+  "Communications Officer","Monitoring & Evaluation","Grant Writer","Consultant",
+];
+
+const COUNTY_SUGGESTIONS = [
+  "Nairobi","Mombasa","Kisumu","Nakuru","Kiambu","Machakos","Kajiado",
+  "Uasin Gishu","Kakamega","Kisii","Meru","Nyeri","Bungoma","Kilifi",
+  "Kwale","Mandera","Garissa","Turkana","Laikipia","Bomet",
+];
+
+const COMPANY_SUGGESTIONS = [
+  "Safaricom","Equity Bank","KCB","Kenya Power","Kenya Airways","EABL",
+  "UN Agencies","World Bank","Red Cross","USAID","GIZ","Oxfam","Save the Children",
+  "Amref Health Africa","World Vision","CARE International","Plan International",
+  "Andela","Cellulant","Twiga Foods","M-Kopa","BasiGo",
+];
+
 
 function Config() {
   const get = useServerFn(getMyWorkflow);
