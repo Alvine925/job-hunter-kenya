@@ -19,6 +19,9 @@ export type Database = {
           company: string | null
           cover_letter: string | null
           created_at: string
+          drive_file_id: string | null
+          drive_folder_id: string | null
+          drive_url: string | null
           email_body: string | null
           email_subject: string | null
           id: string
@@ -33,6 +36,9 @@ export type Database = {
           company?: string | null
           cover_letter?: string | null
           created_at?: string
+          drive_file_id?: string | null
+          drive_folder_id?: string | null
+          drive_url?: string | null
           email_body?: string | null
           email_subject?: string | null
           id?: string
@@ -47,6 +53,9 @@ export type Database = {
           company?: string | null
           cover_letter?: string | null
           created_at?: string
+          drive_file_id?: string | null
+          drive_folder_id?: string | null
+          drive_url?: string | null
           email_body?: string | null
           email_subject?: string | null
           id?: string
@@ -82,13 +91,17 @@ export type Database = {
           id: string
           job_type: string | null
           location: string | null
+          match_gaps: string | null
+          match_reason: string | null
           match_score: number | null
+          match_strengths: string | null
           notes: string | null
           requirements: string | null
           responsibilities: string | null
           salary_max: number | null
           salary_min: number | null
           salary_text: string | null
+          scraped_at: string | null
           source: string | null
           source_url: string | null
           title: string
@@ -109,13 +122,17 @@ export type Database = {
           id?: string
           job_type?: string | null
           location?: string | null
+          match_gaps?: string | null
+          match_reason?: string | null
           match_score?: number | null
+          match_strengths?: string | null
           notes?: string | null
           requirements?: string | null
           responsibilities?: string | null
           salary_max?: number | null
           salary_min?: number | null
           salary_text?: string | null
+          scraped_at?: string | null
           source?: string | null
           source_url?: string | null
           title: string
@@ -136,13 +153,17 @@ export type Database = {
           id?: string
           job_type?: string | null
           location?: string | null
+          match_gaps?: string | null
+          match_reason?: string | null
           match_score?: number | null
+          match_strengths?: string | null
           notes?: string | null
           requirements?: string | null
           responsibilities?: string | null
           salary_max?: number | null
           salary_min?: number | null
           salary_text?: string | null
+          scraped_at?: string | null
           source?: string | null
           source_url?: string | null
           title?: string

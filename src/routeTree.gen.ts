@@ -9,38 +9,165 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedFindJobsRouteImport } from './routes/_authenticated/find-jobs'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedConfigurationRouteImport } from './routes/_authenticated/configuration'
+import { Route as AuthenticatedApplicationsRouteImport } from './routes/_authenticated/applications'
+import { Route as AuthenticatedJobsIdRouteImport } from './routes/_authenticated/jobs.$id'
+import { Route as ApiPublicHooksScrapeCronRouteImport } from './routes/api/public/hooks/scrape-cron'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedFindJobsRoute = AuthenticatedFindJobsRouteImport.update({
+  id: '/find-jobs',
+  path: '/find-jobs',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedConfigurationRoute =
+  AuthenticatedConfigurationRouteImport.update({
+    id: '/configuration',
+    path: '/configuration',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedApplicationsRoute =
+  AuthenticatedApplicationsRouteImport.update({
+    id: '/applications',
+    path: '/applications',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedJobsIdRoute = AuthenticatedJobsIdRouteImport.update({
+  id: '/jobs/$id',
+  path: '/jobs/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const ApiPublicHooksScrapeCronRoute =
+  ApiPublicHooksScrapeCronRouteImport.update({
+    id: '/api/public/hooks/scrape-cron',
+    path: '/api/public/hooks/scrape-cron',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/applications': typeof AuthenticatedApplicationsRoute
+  '/configuration': typeof AuthenticatedConfigurationRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/find-jobs': typeof AuthenticatedFindJobsRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/applications': typeof AuthenticatedApplicationsRoute
+  '/configuration': typeof AuthenticatedConfigurationRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/find-jobs': typeof AuthenticatedFindJobsRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_authenticated/applications': typeof AuthenticatedApplicationsRoute
+  '/_authenticated/configuration': typeof AuthenticatedConfigurationRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/find-jobs': typeof AuthenticatedFindJobsRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/applications'
+    | '/configuration'
+    | '/dashboard'
+    | '/find-jobs'
+    | '/profile'
+    | '/jobs/$id'
+    | '/api/public/hooks/scrape-cron'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/applications'
+    | '/configuration'
+    | '/dashboard'
+    | '/find-jobs'
+    | '/profile'
+    | '/jobs/$id'
+    | '/api/public/hooks/scrape-cron'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/applications'
+    | '/_authenticated/configuration'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/find-jobs'
+    | '/_authenticated/profile'
+    | '/_authenticated/jobs/$id'
+    | '/api/public/hooks/scrape-cron'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  ApiPublicHooksScrapeCronRoute: typeof ApiPublicHooksScrapeCronRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +175,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/find-jobs': {
+      id: '/_authenticated/find-jobs'
+      path: '/find-jobs'
+      fullPath: '/find-jobs'
+      preLoaderRoute: typeof AuthenticatedFindJobsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/configuration': {
+      id: '/_authenticated/configuration'
+      path: '/configuration'
+      fullPath: '/configuration'
+      preLoaderRoute: typeof AuthenticatedConfigurationRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/applications': {
+      id: '/_authenticated/applications'
+      path: '/applications'
+      fullPath: '/applications'
+      preLoaderRoute: typeof AuthenticatedApplicationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/jobs/$id': {
+      id: '/_authenticated/jobs/$id'
+      path: '/jobs/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof AuthenticatedJobsIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/hooks/scrape-cron': {
+      id: '/api/public/hooks/scrape-cron'
+      path: '/api/public/hooks/scrape-cron'
+      fullPath: '/api/public/hooks/scrape-cron'
+      preLoaderRoute: typeof ApiPublicHooksScrapeCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedApplicationsRoute: typeof AuthenticatedApplicationsRoute
+  AuthenticatedConfigurationRoute: typeof AuthenticatedConfigurationRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedFindJobsRoute: typeof AuthenticatedFindJobsRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedJobsIdRoute: typeof AuthenticatedJobsIdRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedApplicationsRoute: AuthenticatedApplicationsRoute,
+  AuthenticatedConfigurationRoute: AuthenticatedConfigurationRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedFindJobsRoute: AuthenticatedFindJobsRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedJobsIdRoute: AuthenticatedJobsIdRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
+  ApiPublicHooksScrapeCronRoute: ApiPublicHooksScrapeCronRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
