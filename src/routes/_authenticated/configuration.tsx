@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Loader2, Save, Plus, X } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/configuration")({ component: Config });
@@ -16,6 +16,28 @@ export const Route = createFileRoute("/_authenticated/configuration")({ componen
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const SOURCES = ["BrighterMonday","MyJobMag","Fuzu","JobwebKenya","CorporateStaffing"];
 const TYPES = ["Full-time","Part-time","Contract","Internship","Remote"];
+
+const ROLE_SUGGESTIONS = [
+  "Software Engineer","Data Analyst","Project Manager","Sales Representative",
+  "Marketing Manager","Accountant","Human Resources","Administrative Assistant",
+  "NGO Program Officer","NGO Field Coordinator","Research Officer","Finance Officer",
+  "Business Development","Customer Service","Operations Manager","Supply Chain",
+  "Communications Officer","Monitoring & Evaluation","Grant Writer","Consultant",
+];
+
+const COUNTY_SUGGESTIONS = [
+  "Nairobi","Mombasa","Kisumu","Nakuru","Kiambu","Machakos","Kajiado",
+  "Uasin Gishu","Kakamega","Kisii","Meru","Nyeri","Bungoma","Kilifi",
+  "Kwale","Mandera","Garissa","Turkana","Laikipia","Bomet",
+];
+
+const COMPANY_SUGGESTIONS = [
+  "Safaricom","Equity Bank","KCB","Kenya Power","Kenya Airways","EABL",
+  "UN Agencies","World Bank","Red Cross","USAID","GIZ","Oxfam","Save the Children",
+  "Amref Health Africa","World Vision","CARE International","Plan International",
+  "Andela","Cellulant","Twiga Foods","M-Kopa","BasiGo",
+];
+
 
 function Config() {
   const get = useServerFn(getMyWorkflow);
@@ -66,6 +88,61 @@ function Config() {
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const toggle = (k: string, v: string) => set(k, form[k].includes(v) ? form[k].filter((x: string) => x !== v) : [...form[k], v]);
 
+  const parseCSV = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+  const isActive = (field: string, val: string) => parseCSV(form[field]).map((x) => x.toLowerCase()).includes(val.toLowerCase());
+  const toggleCSV = (field: string, val: string) => {
+    const arr = parseCSV(form[field]);
+    const exists = arr.find((x) => x.toLowerCase() === val.toLowerCase());
+    const next = exists ? arr.filter((x) => x.toLowerCase() !== val.toLowerCase()) : [...arr, val];
+    set(field, next.join(", "));
+  };
+
+  function SuggestionChips({ field, options, label }: { field: string; options: string[]; label: string }) {
+    const [open, setOpen] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const active = parseCSV(form[field]);
+    return (
+      <div className="mt-1.5">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs text-primary hover:underline">
+            {open ? "Hide suggestions" : "Browse suggestions"}
+          </button>
+        </div>
+        {open && (
+          <div ref={scrollRef} className="flex gap-1.5 flex-wrap max-h-40 overflow-y-auto p-2 border rounded-md bg-muted/20">
+            {options.map((opt) => {
+              const on = isActive(field, opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggleCSV(field, opt)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                    on ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
+                  }`}
+                >
+                  {on ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {active.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap mt-2">
+            {active.map((item) => (
+              <span key={item} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20">
+                {item}
+                <button type="button" onClick={() => toggleCSV(field, item)} className="hover:text-destructive"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-3xl">
       <h1 className="text-2xl font-bold mb-1">Configuration</h1>
@@ -97,10 +174,23 @@ function Config() {
           </div>
         </div>
 
-        <div><Label>Target roles (comma-separated)</Label><Input value={form.target_roles} onChange={(e) => set("target_roles", e.target.value)} placeholder="Software Engineer, Data Analyst" /></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><Label>Counties</Label><Input value={form.target_counties} onChange={(e) => set("target_counties", e.target.value)} placeholder="Nairobi, Mombasa" /></div>
-          <div><Label>Target companies (optional)</Label><Input value={form.target_companies} onChange={(e) => set("target_companies", e.target.value)} placeholder="Safaricom, Equity Bank" /></div>
+        <div>
+          <Label>Target roles</Label>
+          <Input value={form.target_roles} onChange={(e) => set("target_roles", e.target.value)} placeholder="Software Engineer, Data Analyst, NGO Program Officer" />
+          <SuggestionChips field="target_roles" options={ROLE_SUGGESTIONS} label="Common roles & industries" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Counties</Label>
+            <Input value={form.target_counties} onChange={(e) => set("target_counties", e.target.value)} placeholder="Nairobi, Mombasa, Kisumu" />
+            <SuggestionChips field="target_counties" options={COUNTY_SUGGESTIONS} label="Kenyan counties" />
+          </div>
+          <div>
+            <Label>Target companies (optional)</Label>
+            <Input value={form.target_companies} onChange={(e) => set("target_companies", e.target.value)} placeholder="Safaricom, Equity Bank, UN Agencies" />
+            <SuggestionChips field="target_companies" options={COMPANY_SUGGESTIONS} label="Top employers & sectors" />
+          </div>
         </div>
 
         <div>
@@ -153,3 +243,4 @@ function Config() {
     </div>
   );
 }
+
