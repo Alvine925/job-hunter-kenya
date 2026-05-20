@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedFindJobsRouteImport } from './routes/_authenticated/find-jobs'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedConfigurationRouteImport } from './routes/_authenticated/configuration'
 import { Route as AuthenticatedApplicationsRouteImport } from './routes/_authenticated/applications'
 import { Route as AuthenticatedJobsIdRouteImport } from './routes/_authenticated/jobs.$id'
 
@@ -47,6 +48,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedConfigurationRoute =
+  AuthenticatedConfigurationRouteImport.update({
+    id: '/configuration',
+    path: '/configuration',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedApplicationsRoute =
   AuthenticatedApplicationsRouteImport.update({
     id: '/applications',
@@ -63,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/applications': typeof AuthenticatedApplicationsRoute
+  '/configuration': typeof AuthenticatedConfigurationRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/find-jobs': typeof AuthenticatedFindJobsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -72,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/applications': typeof AuthenticatedApplicationsRoute
+  '/configuration': typeof AuthenticatedConfigurationRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/find-jobs': typeof AuthenticatedFindJobsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -83,6 +92,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/applications': typeof AuthenticatedApplicationsRoute
+  '/_authenticated/configuration': typeof AuthenticatedConfigurationRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/find-jobs': typeof AuthenticatedFindJobsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/applications'
+    | '/configuration'
     | '/dashboard'
     | '/find-jobs'
     | '/profile'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/applications'
+    | '/configuration'
     | '/dashboard'
     | '/find-jobs'
     | '/profile'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/applications'
+    | '/_authenticated/configuration'
     | '/_authenticated/dashboard'
     | '/_authenticated/find-jobs'
     | '/_authenticated/profile'
@@ -169,6 +182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/configuration': {
+      id: '/_authenticated/configuration'
+      path: '/configuration'
+      fullPath: '/configuration'
+      preLoaderRoute: typeof AuthenticatedConfigurationRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/applications': {
       id: '/_authenticated/applications'
       path: '/applications'
@@ -188,6 +208,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedApplicationsRoute: typeof AuthenticatedApplicationsRoute
+  AuthenticatedConfigurationRoute: typeof AuthenticatedConfigurationRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFindJobsRoute: typeof AuthenticatedFindJobsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -196,6 +217,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedApplicationsRoute: AuthenticatedApplicationsRoute,
+  AuthenticatedConfigurationRoute: AuthenticatedConfigurationRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFindJobsRoute: AuthenticatedFindJobsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
