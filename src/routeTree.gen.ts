@@ -17,6 +17,7 @@ import { Route as AuthenticatedFindJobsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfigurationRouteImport } from './routes/_authenticated/configuration'
 import { Route as AuthenticatedApplicationsRouteImport } from './routes/_authenticated/applications'
+import { Route as AuthenticatedOnboardingCvRouteImport } from './routes/_authenticated/onboarding.cv'
 import { Route as AuthenticatedJobsIdRouteImport } from './routes/_authenticated/jobs.$id'
 import { Route as ApiPublicHooksScrapeCronRouteImport } from './routes/api/public/hooks/scrape-cron'
 
@@ -61,6 +62,12 @@ const AuthenticatedApplicationsRoute =
     path: '/applications',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedOnboardingCvRoute =
+  AuthenticatedOnboardingCvRouteImport.update({
+    id: '/onboarding/cv',
+    path: '/onboarding/cv',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedJobsIdRoute = AuthenticatedJobsIdRouteImport.update({
   id: '/jobs/$id',
   path: '/jobs/$id',
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/find-jobs': typeof AuthenticatedFindJobsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/onboarding/cv': typeof AuthenticatedOnboardingCvRoute
   '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/find-jobs': typeof AuthenticatedFindJobsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/onboarding/cv': typeof AuthenticatedOnboardingCvRoute
   '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRoutesById {
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/_authenticated/find-jobs': typeof AuthenticatedFindJobsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/jobs/$id': typeof AuthenticatedJobsIdRoute
+  '/_authenticated/onboarding/cv': typeof AuthenticatedOnboardingCvRoute
   '/api/public/hooks/scrape-cron': typeof ApiPublicHooksScrapeCronRoute
 }
 export interface FileRouteTypes {
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/find-jobs'
     | '/profile'
     | '/jobs/$id'
+    | '/onboarding/cv'
     | '/api/public/hooks/scrape-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/find-jobs'
     | '/profile'
     | '/jobs/$id'
+    | '/onboarding/cv'
     | '/api/public/hooks/scrape-cron'
   id:
     | '__root__'
@@ -142,6 +154,7 @@ export interface FileRouteTypes {
     | '/_authenticated/find-jobs'
     | '/_authenticated/profile'
     | '/_authenticated/jobs/$id'
+    | '/_authenticated/onboarding/cv'
     | '/api/public/hooks/scrape-cron'
   fileRoutesById: FileRoutesById
 }
@@ -210,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedApplicationsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/onboarding/cv': {
+      id: '/_authenticated/onboarding/cv'
+      path: '/onboarding/cv'
+      fullPath: '/onboarding/cv'
+      preLoaderRoute: typeof AuthenticatedOnboardingCvRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/jobs/$id': {
       id: '/_authenticated/jobs/$id'
       path: '/jobs/$id'
@@ -234,6 +254,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFindJobsRoute: typeof AuthenticatedFindJobsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedJobsIdRoute: typeof AuthenticatedJobsIdRoute
+  AuthenticatedOnboardingCvRoute: typeof AuthenticatedOnboardingCvRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -243,6 +264,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFindJobsRoute: AuthenticatedFindJobsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedJobsIdRoute: AuthenticatedJobsIdRoute,
+  AuthenticatedOnboardingCvRoute: AuthenticatedOnboardingCvRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -258,3 +280,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
