@@ -344,3 +344,76 @@ export const generateApplicationPack = createServerFn({ method: "POST" })
     }
   });
 
+// ---- Update draft email/cover letter (user edits before sending) ----
+export const updateApplicationDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    applicationId: z.string().uuid(),
+    email_subject: z.string().min(1).max(500).optional(),
+    email_body: z.string().min(1).max(20000).optional(),
+    cover_letter: z.string().min(1).max(20000).optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { applicationId, ...patch } = data;
+    const { data: upd, error } = await supabase.from("applications")
+      .update(patch).eq("id", applicationId).eq("user_id", userId).select().single();
+    if (error) throw error;
+    return { application: upd };
+  });
+
+// ---- Send the application email via Gmail (with CV attachment) ----
+export const sendApplicationEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    applicationId: z.string().uuid(),
+    to: z.string().email(),
+    cc: z.string().optional(),
+    bcc: z.string().optional(),
+    subject: z.string().min(1).max(500),
+    body: z.string().min(1).max(20000),
+    includeCv: z.boolean().default(true),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: app, error: appErr } = await supabase.from("applications")
+      .select("*").eq("id", data.applicationId).eq("user_id", userId).single();
+    if (appErr || !app) throw new Error("Application not found");
+
+    let attachment: { filename: string; mimeType: string; data: Uint8Array } | undefined;
+    if (data.includeCv) {
+      const { data: profile } = await supabase.from("profiles").select("cv_storage_path").eq("id", userId).single();
+      if (profile?.cv_storage_path) {
+        const { data: file, error: dlErr } = await supabase.storage.from("cvs").download(profile.cv_storage_path);
+        if (dlErr) throw new Error(`CV download failed: ${dlErr.message}`);
+        const buf = new Uint8Array(await file.arrayBuffer());
+        const name = profile.cv_storage_path.split("/").pop() || "CV.pdf";
+        const ext = name.split(".").pop()?.toLowerCase();
+        const mimeType = ext === "pdf" ? "application/pdf"
+          : ext === "doc" ? "application/msword"
+          : ext === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : "application/octet-stream";
+        attachment = { filename: name, mimeType, data: buf };
+      }
+    }
+
+    const sent = await sendGmail({
+      to: data.to,
+      cc: data.cc || undefined,
+      bcc: data.bcc || undefined,
+      subject: data.subject,
+      body: data.body,
+      attachment,
+    });
+
+    const { data: upd, error } = await supabase.from("applications").update({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+      email_subject: data.subject,
+      email_body: data.body,
+    }).eq("id", data.applicationId).eq("user_id", userId).select().single();
+    if (error) throw error;
+    return { application: upd, gmailMessageId: sent.id };
+  });
+
+
