@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       applications: {
         Row: {
+          application_type: string
           company: string | null
           cover_letter: string | null
           created_at: string
@@ -28,11 +29,14 @@ export type Database = {
           job_id: string | null
           job_title: string | null
           match_score: number | null
+          pack_answers: string | null
+          pack_questions: string | null
           sent_at: string | null
           status: string
           user_id: string
         }
         Insert: {
+          application_type?: string
           company?: string | null
           cover_letter?: string | null
           created_at?: string
@@ -45,11 +49,14 @@ export type Database = {
           job_id?: string | null
           job_title?: string | null
           match_score?: number | null
+          pack_answers?: string | null
+          pack_questions?: string | null
           sent_at?: string | null
           status?: string
           user_id: string
         }
         Update: {
+          application_type?: string
           company?: string | null
           cover_letter?: string | null
           created_at?: string
@@ -62,6 +69,8 @@ export type Database = {
           job_id?: string | null
           job_title?: string | null
           match_score?: number | null
+          pack_answers?: string | null
+          pack_questions?: string | null
           sent_at?: string | null
           status?: string
           user_id?: string
@@ -177,6 +186,7 @@ export type Database = {
           certifications: string | null
           created_at: string
           current_address: string | null
+          cv_parsed_at: string | null
           cv_storage_path: string | null
           cv_url: string | null
           desired_roles: string[] | null
@@ -189,6 +199,7 @@ export type Database = {
           minimum_salary: number | null
           nationality: string | null
           open_to_remote: boolean | null
+          parsed_cv_text: string | null
           phone: string | null
           preferred_county: string | null
           professional_summary: string | null
@@ -200,6 +211,7 @@ export type Database = {
           certifications?: string | null
           created_at?: string
           current_address?: string | null
+          cv_parsed_at?: string | null
           cv_storage_path?: string | null
           cv_url?: string | null
           desired_roles?: string[] | null
@@ -212,6 +224,7 @@ export type Database = {
           minimum_salary?: number | null
           nationality?: string | null
           open_to_remote?: boolean | null
+          parsed_cv_text?: string | null
           phone?: string | null
           preferred_county?: string | null
           professional_summary?: string | null
@@ -223,6 +236,7 @@ export type Database = {
           certifications?: string | null
           created_at?: string
           current_address?: string | null
+          cv_parsed_at?: string | null
           cv_storage_path?: string | null
           cv_url?: string | null
           desired_roles?: string[] | null
@@ -235,6 +249,7 @@ export type Database = {
           minimum_salary?: number | null
           nationality?: string | null
           open_to_remote?: boolean | null
+          parsed_cv_text?: string | null
           phone?: string | null
           preferred_county?: string | null
           professional_summary?: string | null
@@ -295,6 +310,7 @@ export type Database = {
           run_days: string[] | null
           run_time: string | null
           sources: string[] | null
+          target_companies: string[] | null
           target_counties: string[] | null
           target_roles: string[] | null
           user_id: string
@@ -313,6 +329,7 @@ export type Database = {
           run_days?: string[] | null
           run_time?: string | null
           sources?: string[] | null
+          target_companies?: string[] | null
           target_counties?: string[] | null
           target_roles?: string[] | null
           user_id: string
@@ -331,6 +348,7 @@ export type Database = {
           run_days?: string[] | null
           run_time?: string | null
           sources?: string[] | null
+          target_companies?: string[] | null
           target_counties?: string[] | null
           target_roles?: string[] | null
           user_id?: string
