@@ -166,6 +166,4 @@ function JobDetail() {
       )}
     </div>
   );
-    </div>
-  );
 }
