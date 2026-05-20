@@ -1,13 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getJob, generateAndSaveLetter, generateApplicationPack } from "@/lib/jobs.functions";
+import { getJob, generateAndSaveLetter, generateApplicationPack, updateApplicationDraft, sendApplicationEmail } from "@/lib/jobs.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ExternalLink, Loader2, Sparkles, Mail, Phone, FileText, ClipboardList, Copy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, ExternalLink, Loader2, Sparkles, Mail, Phone, FileText, ClipboardList, Copy, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/jobs/$id")({ component: JobDetail });
 
