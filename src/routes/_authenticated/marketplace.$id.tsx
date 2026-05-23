@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getJob,
+  getMarketplaceJob,
   toggleSaveJob,
   generateAndSaveLetter,
   generateApplicationPack,
@@ -13,11 +13,13 @@ import {
 import { JobDetailView } from "@/components/job-detail/job-detail-view";
 import { parsePackAnswers } from "@/components/job-detail/parse-pack";
 import { ScrapingLoaderPanel } from "@/components/ui/tellus-loader";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState, useMemo } from "react";
 import { normalizeApplyEmail } from "@/lib/application-email";
 import { sanitizePlainDocumentText } from "@/lib/sanitize-document-text";
+import { supabase } from "@/integrations/supabase/client";
+import { scanApplicationMethod, type ScrapedJob } from "@/lib/scraped-jobs";
 import {
   type ApplyComposeView,
   type ApplySection,
@@ -25,10 +27,9 @@ import {
   jobDetailSearchFromTab,
   parseJobDetailSearch,
 } from "@/components/job-detail/tab-search";
-import { QUERY_STALE_DEFAULT } from "@/lib/query-client";
 
-export const Route = createFileRoute("/_authenticated/jobs/$id")({
-  component: JobDetail,
+export const Route = createFileRoute("/_authenticated/marketplace/$id")({
+  component: MarketplaceJobDetail,
   validateSearch: parseJobDetailSearch,
 });
 
@@ -63,8 +64,8 @@ function formPackHint(
   return null;
 }
 
-function JobDetail() {
-  const { id } = Route.useParams();
+function MarketplaceJobDetail() {
+  const { id: scrapedJobId } = Route.useParams();
   const urlSearch = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const tab: JobDetailTab = urlSearch.tab ?? "overview";
@@ -142,18 +143,50 @@ function JobDetail() {
   };
   const qc = useQueryClient();
 
+  // Pre-flight check: does the user already have a jobs row for this scraped job?
+  // This lets us show "Fetching job details…" instead of "Analyzing…" for repeat visits.
+  const { data: existsInDb } = useQuery({
+    queryKey: ["marketplace-job-exists", scrapedJobId],
+    queryFn: async () => {
+      // Check if a scraped_jobs row exists and get its source_url
+      const { data: scraped } = await supabase
+        .from("scraped_jobs")
+        .select("source_url")
+        .eq("id", scrapedJobId)
+        .maybeSingle();
+      if (!scraped?.source_url) return false;
+
+      // Check if the user already has a job row matching this source_url
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data: existing } = await supabase
+        .from("jobs")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("source_url", scraped.source_url)
+        .maybeSingle();
+      return !!existing;
+    },
+    staleTime: Infinity, // Only check once per mount
+  });
+
+  // Also check React Query cache — if we already fetched this job, it's cached
+  const cachedData = qc.getQueryData(["marketplace-job", scrapedJobId]);
+  const isRevisit = existsInDb === true || !!cachedData;
+
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["job", id],
-    queryFn: () => getJob({ id }),
-    staleTime: QUERY_STALE_DEFAULT,
+    queryKey: ["marketplace-job", scrapedJobId],
+    queryFn: () => getMarketplaceJob(scrapedJobId),
+    staleTime: 60_000,
     retry: 1,
   });
 
   const { data: profile } = useQuery({
     queryKey: ["profile-skills"],
-    staleTime: QUERY_STALE_DEFAULT,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
       const { data: p } = await supabase
         .from("profiles")
@@ -163,6 +196,8 @@ function JobDetail() {
       return p;
     },
   });
+
+  const jobId = data?.job?.id as string | undefined;
 
   const [to, setTo] = useState("");
   const [cc, setCc] = useState("");
@@ -182,17 +217,17 @@ function JobDetail() {
 
   useEffect(() => {
     if (!data?.application) return;
-    setSubject(data.application.email_subject ?? "");
-    setBody(data.application.email_body ?? "");
-    setLetter(sanitizePlainDocumentText(data.application.cover_letter ?? ""));
+    setSubject((data.application.email_subject as string) ?? "");
+    setBody((data.application.email_body as string) ?? "");
+    setLetter(sanitizePlainDocumentText((data.application.cover_letter as string) ?? ""));
   }, [data?.application?.id]);
 
   const appDraft = data?.application;
   const hasUnsavedChanges = !!appDraft?.id && (
-    subject !== (appDraft.email_subject ?? "") ||
-    body !== (appDraft.email_body ?? "") ||
-    sanitizePlainDocumentText(letter) !== sanitizePlainDocumentText(appDraft.cover_letter ?? "") ||
-    to !== (appDraft.application_email ?? "")
+    subject !== ((appDraft.email_subject as string) ?? "") ||
+    body !== ((appDraft.email_body as string) ?? "") ||
+    sanitizePlainDocumentText(letter) !== sanitizePlainDocumentText((appDraft.cover_letter as string) ?? "") ||
+    to !== ((appDraft.application_email as string) ?? "")
   );
 
   useEffect(() => {
@@ -202,14 +237,14 @@ function JobDetail() {
       setIsSavingDraft(true);
       try {
         await updateApplicationDraft({
-          applicationId: appDraft.id,
+          applicationId: appDraft.id as string,
           email_subject: subject,
           email_body: body,
           cover_letter: sanitizePlainDocumentText(letter),
           application_email: to.trim() || undefined,
         });
         await Promise.all([
-          qc.invalidateQueries({ queryKey: ["job", id] }),
+          qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] }),
           qc.invalidateQueries({ queryKey: ["jobs"] }),
           qc.invalidateQueries({ queryKey: ["saved-jobs"] }),
           qc.invalidateQueries({ queryKey: ["scraped_jobs"] }),
@@ -222,21 +257,19 @@ function JobDetail() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [subject, body, letter, to, appDraft?.id, hasUnsavedChanges, id, qc]);
+  }, [subject, body, letter, to, appDraft?.id, hasUnsavedChanges, scrapedJobId, qc]);
 
   const genMut = useMutation({
-    mutationFn: () => generateAndSaveLetter({ jobId: id }),
+    mutationFn: () => generateAndSaveLetter({ jobId: jobId! }),
     onSuccess: (r) => {
-      toast.success("Application pack ready", {
-        description: "Cover letter, email, interview prep, and Drive files (if Google is connected).",
-      });
+      toast.success("Application draft ready");
       setSubject(r.application.email_subject ?? "");
       setBody(r.application.email_body ?? "");
       setLetter(sanitizePlainDocumentText(r.application.cover_letter ?? ""));
       const email = normalizeApplyEmail(r.application.application_email);
       if (email) setTo(email);
       setTab("apply");
-      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
       qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
@@ -245,12 +278,10 @@ function JobDetail() {
   });
 
   const packMut = useMutation({
-    mutationFn: () => generateApplicationPack({ jobId: id }),
+    mutationFn: () => generateApplicationPack({ jobId: jobId! }),
     onSuccess: () => {
-      toast.success("Application pack ready", {
-        description: "Form responses, cover letter, email, interview prep — saved to Drive when connected.",
-      });
-      qc.invalidateQueries({ queryKey: ["job", id] });
+      toast.success("Application pack ready");
+      qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
       qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
@@ -259,18 +290,18 @@ function JobDetail() {
   });
 
   const interviewMut = useMutation({
-    mutationFn: () => generateInterviewQuestions({ jobId: id }),
+    mutationFn: () => generateInterviewQuestions({ jobId: jobId! }),
     onSuccess: (res) => {
       toast.success("Interview prep saved");
       focusInterview();
-      qc.setQueryData(["job", id], (prev: any) => {
+      qc.setQueryData(["marketplace-job", scrapedJobId], (prev: any) => {
         if (!prev) return prev;
         return {
           ...prev,
           application: res?.application ?? prev.application,
         };
       });
-      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
       qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
@@ -282,7 +313,7 @@ function JobDetail() {
     mutationFn: () => {
       if (!data?.application?.id) throw new Error("Generate the application first");
       return updateApplicationDraft({
-        applicationId: data.application.id,
+        applicationId: data.application.id as string,
         email_subject: subject,
         email_body: body,
         cover_letter: sanitizePlainDocumentText(letter),
@@ -291,7 +322,7 @@ function JobDetail() {
     },
     onSuccess: () => {
       toast.success("Draft saved");
-      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
       qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
@@ -302,7 +333,7 @@ function JobDetail() {
   const sendMut = useMutation({
     mutationFn: () =>
       sendApplicationEmail({
-        applicationId: data!.application!.id,
+        applicationId: data!.application!.id as string,
         to,
         cc: cc || undefined,
         subject,
@@ -314,7 +345,7 @@ function JobDetail() {
         description: "Your email was sent from Gmail.",
       });
       if (res?.application) {
-        qc.setQueryData(["job", id], (prev: any) => {
+        qc.setQueryData(["marketplace-job", scrapedJobId], (prev: any) => {
           if (!prev) return prev;
           return {
             ...prev,
@@ -322,7 +353,7 @@ function JobDetail() {
           };
         });
       }
-      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
       qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
@@ -334,7 +365,7 @@ function JobDetail() {
     mutationFn: () => {
       if (!data?.application?.id) throw new Error("Generate the application first");
       return saveApplicationPackToDrive({
-        applicationId: data.application.id,
+        applicationId: data.application.id as string,
         email_subject: subject,
         email_body: body,
         cover_letter: sanitizePlainDocumentText(letter),
@@ -344,7 +375,7 @@ function JobDetail() {
       toast.success("Application pack saved to Google Drive", {
         description: `Email, cover letter, and CV are in folder “${r.folderName}”.`,
       });
-      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
       qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
@@ -353,47 +384,48 @@ function JobDetail() {
   });
 
   const saveBookmarkMut = useMutation({
-    mutationFn: () => toggleSaveJob(id),
+    mutationFn: () => toggleSaveJob(jobId!),
     onSuccess: (r) => {
       toast.success(r.saved ? "Job saved" : "Removed from saved jobs");
-      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (isLoading && !data) {
+  if (isLoading) {
     return (
       <ScrapingLoaderPanel
-        title="Fetching job details"
-        description="Loading your saved job details and match analysis…"
+        title={isRevisit ? "Fetching job details" : "Analyzing listing"}
+        description={
+          isRevisit
+            ? "Loading your saved job details and match analysis…"
+            : "Matching this listing to your profile and preparing the detail view. This usually takes a few seconds…"
+        }
         className="min-h-[60vh]"
       />
     );
   }
 
-  if (isError) {
+  if (isError || !data?.job) {
     return (
-      <div className="p-8 max-w-lg">
-        <p className="font-medium text-foreground">Could not load this job</p>
-        <p className="text-sm text-muted-foreground mt-2">{(error as Error).message}</p>
-        <p className="text-xs text-muted-foreground mt-4">
-          If you recently updated interview features, deploy the <code className="text-xs">jobs</code> and{" "}
-          <code className="text-xs">applications</code> edge functions, then run the new database migrations.
+      <div className="p-8 text-center">
+        <p className="text-muted-foreground">
+          {(error as Error)?.message ?? "Job not found"}
         </p>
+        <Button variant="link" asChild className="mt-4">
+          <Link to="/marketplace">Back to marketplace</Link>
+        </Button>
       </div>
     );
   }
 
-  if (!data?.job) {
-    return <div className="p-8">Job not found</div>;
-  }
-
   const job = data.job;
   const app = data.application;
-  const isEmailApply = !!job.application_email || job.application_method === "email";
-  const packMeta = parsePackAnswers(app?.pack_answers);
+  const isEmailApply = scanApplicationMethod(job as ScrapedJob) === "email";
+  const packMeta = parsePackAnswers(app?.pack_answers as string | null | undefined);
   const hay = jobSourceHaystack(job);
 
   return (
@@ -412,6 +444,9 @@ function JobDetail() {
       isEmailApply={isEmailApply}
       siteFormHint={formPackHint(job, packMeta.siteProfileName)}
       siteEmailHint={hay.includes("myjobsinkenya.com") ? SITE_EMAIL_HINTS["My Jobs in Kenya"] : null}
+      backTo={{ to: "/marketplace", label: "Marketplace" }}
+      similarJobLink="marketplace"
+      similarCurrentId={scrapedJobId}
       to={to}
       cc={cc}
       subject={subject}
@@ -436,7 +471,7 @@ function JobDetail() {
         focusInterview();
         interviewMut.mutate();
       }}
-      onInterviewReportRefresh={() => qc.invalidateQueries({ queryKey: ["job", id] })}
+      onInterviewReportRefresh={() => qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] })}
       onSave={() => saveMut.mutate()}
       onSend={() => sendMut.mutate()}
       onSaveToDrive={() => driveMut.mutate()}
