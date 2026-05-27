@@ -10,7 +10,7 @@ export const config = {
 
 export default async function handler(request) {
   // Dynamically import the built server entry
-  const serverModule = await import("../../dist/server/index.js");
+  const serverModule = await import("../dist/server/index.js");
   const server = serverModule.default;
 
   // The server exports a Cloudflare Worker-style { fetch } handler
