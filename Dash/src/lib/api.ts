@@ -148,7 +148,7 @@ async function ensureSession() {
     console.error("[auth] getSession error:", error);
     throw error;
   }
-  
+
   if (session?.access_token) {
     try {
       // Decode JWT payload to check expiration
@@ -229,7 +229,7 @@ export async function loginWithPassword(email: string, password: string, turnsti
     refresh_token: session.refresh_token,
   });
   if (setErr) throw setErr;
-  
+
   // Wait for the session listener to fire and cache the session
   await new Promise(resolve => setTimeout(resolve, 50));
   resetAuthReady();
@@ -274,15 +274,15 @@ function isInvalidEmployer(company: string | null | undefined): boolean {
 
   // 2. Word-by-word check to see if the name consists ENTIRELY of locations and generic keywords
   const LOCATION_AND_GENERIC_WORDS = new Set([
-    "nairobi", "mombasa", "kisumu", "nakuru", "eldoret", "kenya", "kiambu", "machakos", 
-    "kajiado", "nyeri", "meru", "laikipia", "kericho", "kisii", "kakamega", "bungoma", 
-    "kilifi", "kwale", "garissa", "turkana", "narok", "thika", "naivasha", "kitale", 
+    "nairobi", "mombasa", "kisumu", "nakuru", "eldoret", "kenya", "kiambu", "machakos",
+    "kajiado", "nyeri", "meru", "laikipia", "kericho", "kisii", "kakamega", "bungoma",
+    "kilifi", "kwale", "garissa", "turkana", "narok", "thika", "naivasha", "kitale",
     "nanyuki", "malindi", "westlands", "kilimani", "karen", "ruaka", "athiriver", "athi river",
     "east africa", "eastafrica", "africa", "county", "city", "town", "province",
     "remote", "hybrid", "onsite", "on-site", "location", "locations", "various", "multiple",
-    "unknown", "not", "specified", "n/a", "na", "none", "null", "employer", "recruiter", 
-    "agency", "company", "hiring", "job", "jobs", "careers", "career", "posting", "postings", 
-    "listing", "listings", "apply", "apply now", "hiring company", "unknown employer", 
+    "unknown", "not", "specified", "n/a", "na", "none", "null", "employer", "recruiter",
+    "agency", "company", "hiring", "job", "jobs", "careers", "career", "posting", "postings",
+    "listing", "listings", "apply", "apply now", "hiring company", "unknown employer",
     "and", "of", "in", "at", "for", "the", "a", "an", "to", "with", "by", "from"
   ]);
 
@@ -903,24 +903,26 @@ export async function deleteWorkflow(id: string) {
   return invokeFunction<{ workflows: Record<string, unknown>[] }>("workflow", { action: "delete", id });
 }
 
-export async function upsertWorkflow(args: { data: {
-  id?: string;
-  name?: string;
-  active?: boolean;
-  run_time?: string;
-  run_days?: string[];
-  target_roles?: string[];
-  target_counties?: string[];
-  target_companies?: string[];
-  sources?: string[];
-  job_types?: string[];
-  min_match_score?: number;
-  max_applications?: number;
-  minimum_salary?: number | null;
-  cover_letter_tone?: string;
-  auto_apply?: boolean;
-  application_mode?: "manual" | "automatic";
-}}) {
+export async function upsertWorkflow(args: {
+  data: {
+    id?: string;
+    name?: string;
+    active?: boolean;
+    run_time?: string;
+    run_days?: string[];
+    target_roles?: string[];
+    target_counties?: string[];
+    target_companies?: string[];
+    sources?: string[];
+    job_types?: string[];
+    min_match_score?: number;
+    max_applications?: number;
+    minimum_salary?: number | null;
+    cover_letter_tone?: string;
+    auto_apply?: boolean;
+    application_mode?: "manual" | "automatic";
+  }
+}) {
   const google_access_token = await getGoogleToken();
   const google_refresh_token = await getGoogleRefreshToken();
   return invokeFunction("workflow", {

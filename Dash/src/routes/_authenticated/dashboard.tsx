@@ -51,7 +51,7 @@ function Dashboard() {
         });
         if (error) throw error;
         console.log("[bulk-logo] Background database logo resolution complete:", data);
-        
+
         // Invalidate queries so the fresh DB logo_urls load onto cards and rows instantly
         queryClient.invalidateQueries({ queryKey: ["jobs"] });
       } catch (err) {

@@ -479,7 +479,7 @@ function MarketplaceJobDetail() {
       const nextMethod = isEmailApply ? "form" : "email";
       console.log("[toggleMethodMut] Clicked toggle. isEmailApply:", isEmailApply, "nextMethod:", nextMethod);
       console.log("[toggleMethodMut] jobId:", jobId, "scrapedJobId:", scrapedJobId);
-      
+
       if (!jobId) {
         throw new Error("Job ID not found. Please wait for the page to finish loading.");
       }
@@ -547,82 +547,82 @@ function MarketplaceJobDetail() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full">
-    <JobDetailView
-      job={job}
-      application={app ?? null}
-      tab={tab}
-      onTabChange={setTab}
-      applyView={applyView}
-      onApplyViewChange={setApplyView}
-      similarJobs={(data.similar_jobs as any) ?? []}
-      profileSkills={profile?.skills}
-      userFirstName={profile?.full_name?.split(/\s+/)[0]}
-      packMeta={packMeta}
-      isEmailApply={isEmailApply}
-      siteFormHint={formPackHint(job, packMeta.siteProfileName)}
-      siteEmailHint={hay.includes("myjobsinkenya.com") ? SITE_EMAIL_HINTS["My Jobs in Kenya"] : null}
-      backTo={{ to: "/marketplace", label: "Marketplace" }}
-      similarJobLink="marketplace"
-      similarCurrentId={scrapedJobId}
-      to={to}
-      cc={cc}
-      subject={subject}
-      body={body}
-      letter={letter}
-      includeCv={includeCv}
-      onToChange={setTo}
-      onCcChange={setCc}
-      onSubjectChange={setSubject}
-      onBodyChange={setBody}
-      onLetterChange={setLetter}
-      onIncludeCvChange={setIncludeCv}
-      onApply={async () => {
-        const precheck = await guardLimit();
-        if (precheck) genMut.mutate(precheck);
-      }}
-      onPack={async () => {
-        const precheck = await guardLimit();
-        if (precheck) packMut.mutate(precheck);
-      }}
-      applySection={applySection}
-      onApplySectionChange={setApplySection}
-      applyPreviewOpen={applyPreviewOpen}
-      onApplyPreviewOpenChange={setApplyPreviewOpen}
-      interviewSheetOpen={interviewSheetOpen}
-      onInterviewSheetOpenChange={setInterviewSheetOpen}
-      onInterviewGenerate={async () => {
-        if (!(await guardLimit())) return;
-        focusInterview();
-        interviewMut.mutate();
-      }}
-      onInterviewReportRefresh={() => qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] })}
-      onSave={() => saveMut.mutate()}
-      onSend={() => sendMut.mutate()}
-      onSaveToDrive={() => driveMut.mutate()}
-      applyPending={genMut.isPending}
-      applyDisabled={limitReached}
-      packPending={packMut.isPending}
-      packDisabled={limitReached}
-      interviewPending={interviewMut.isPending}
-      interviewDisabled={limitReached}
-      limitMessage={limitReached ? (limitStatus?.reason || "Generation limit reached") : undefined}
-      savePending={saveMut.isPending}
-      sendPending={sendMut.isPending}
-      saveToDrivePending={driveMut.isPending}
-      isSavingDraft={isSavingDraft}
-      isSaved={!!job.saved_at}
-      onToggleSave={() => saveBookmarkMut.mutate()}
-      saveBookmarkPending={saveBookmarkMut.isPending}
-      onToggleApplicationMethod={() => toggleMethodMut.mutate()}
-    />
-    <ReferralLimitModal
-      open={referralPromptOpen}
-      onOpenChange={setReferralPromptOpen}
-      profile={profile}
-      used={referralPromptMeta.used}
-      limit={referralPromptMeta.limit}
-      actionLabel={referralPromptMeta.actionLabel}
-    />
+      <JobDetailView
+        job={job}
+        application={app ?? null}
+        tab={tab}
+        onTabChange={setTab}
+        applyView={applyView}
+        onApplyViewChange={setApplyView}
+        similarJobs={(data.similar_jobs as any) ?? []}
+        profileSkills={profile?.skills}
+        userFirstName={profile?.full_name?.split(/\s+/)[0]}
+        packMeta={packMeta}
+        isEmailApply={isEmailApply}
+        siteFormHint={formPackHint(job, packMeta.siteProfileName)}
+        siteEmailHint={hay.includes("myjobsinkenya.com") ? SITE_EMAIL_HINTS["My Jobs in Kenya"] : null}
+        backTo={{ to: "/marketplace", label: "Marketplace" }}
+        similarJobLink="marketplace"
+        similarCurrentId={scrapedJobId}
+        to={to}
+        cc={cc}
+        subject={subject}
+        body={body}
+        letter={letter}
+        includeCv={includeCv}
+        onToChange={setTo}
+        onCcChange={setCc}
+        onSubjectChange={setSubject}
+        onBodyChange={setBody}
+        onLetterChange={setLetter}
+        onIncludeCvChange={setIncludeCv}
+        onApply={async () => {
+          const precheck = await guardLimit();
+          if (precheck) genMut.mutate(precheck);
+        }}
+        onPack={async () => {
+          const precheck = await guardLimit();
+          if (precheck) packMut.mutate(precheck);
+        }}
+        applySection={applySection}
+        onApplySectionChange={setApplySection}
+        applyPreviewOpen={applyPreviewOpen}
+        onApplyPreviewOpenChange={setApplyPreviewOpen}
+        interviewSheetOpen={interviewSheetOpen}
+        onInterviewSheetOpenChange={setInterviewSheetOpen}
+        onInterviewGenerate={async () => {
+          if (!(await guardLimit())) return;
+          focusInterview();
+          interviewMut.mutate();
+        }}
+        onInterviewReportRefresh={() => qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] })}
+        onSave={() => saveMut.mutate()}
+        onSend={() => sendMut.mutate()}
+        onSaveToDrive={() => driveMut.mutate()}
+        applyPending={genMut.isPending}
+        applyDisabled={limitReached}
+        packPending={packMut.isPending}
+        packDisabled={limitReached}
+        interviewPending={interviewMut.isPending}
+        interviewDisabled={limitReached}
+        limitMessage={limitReached ? (limitStatus?.reason || "Generation limit reached") : undefined}
+        savePending={saveMut.isPending}
+        sendPending={sendMut.isPending}
+        saveToDrivePending={driveMut.isPending}
+        isSavingDraft={isSavingDraft}
+        isSaved={!!job.saved_at}
+        onToggleSave={() => saveBookmarkMut.mutate()}
+        saveBookmarkPending={saveBookmarkMut.isPending}
+        onToggleApplicationMethod={() => toggleMethodMut.mutate()}
+      />
+      <ReferralLimitModal
+        open={referralPromptOpen}
+        onOpenChange={setReferralPromptOpen}
+        profile={profile}
+        used={referralPromptMeta.used}
+        limit={referralPromptMeta.limit}
+        actionLabel={referralPromptMeta.actionLabel}
+      />
     </div>
   );
 }
