@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../integrations/supabase/client";
 
 // ---------------------------------------------------------------------------
@@ -21,12 +22,11 @@ function getEnvVar(env: unknown, key: string): string | undefined {
  * This function is ONLY called from server routes (src/server.ts).
  * It must NEVER be bundled into the client.
  */
-async function getAdminClient(env: unknown) {
+function getAdminClient(env: unknown) {
   const url = getEnvVar(env, "SUPABASE_URL");
   const key = getEnvVar(env, "SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
 
-  const { createClient } = await import("@supabase/supabase-js");
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
