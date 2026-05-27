@@ -1,0 +1,21 @@
+# Tellus Application Workspace — Dash
+
+This domain (`https://myjobs.tellusjobs.site`) hosts the authenticated dashboard workspace for Tellus, a job application automation platform tailored for the Kenyan job market.
+
+For public documentation, marketing, guides, and sitemaps, please visit the main landing site at [tellusjobs.site](https://tellusjobs.site) and its corresponding [llms.txt](https://tellusjobs.site/llms.txt).
+
+## Accessible Public Paths
+- **Login (`/login`)**: Secure portal to sign in or register an account.
+- **Privacy Policy (`/privacy`)**: Details regarding resume security, user data retention, and DPA 2019/GDPR compliance.
+- **Terms of Service (`/terms`)**: Platform usage conditions and referral limit tier explanations.
+
+## Authenticated Dashboard Workspace (Protected)
+Once signed in, users gain access to:
+1. **Dashboard (`/dashboard`)**: Unified analytics summary of profile stats, referral counts, matching metrics, and application history.
+2. **Find Jobs (`/find-jobs`)**: Aggregate view of crawled vacancies from Fuzu, BrighterMonday, MyJobsInKenya, and private portals with 0-100% semantic alignment scoring.
+3. **Monitors (`/monitors`)**: Premium crawler profiles to auto-scrape new job alerts matching specific search parameters.
+4. **Applications (`/applications`)**: Pipeline tracker displaying current applications status, drafted emails, and cover letters.
+5. **Templates (`/templates`)**: Formats and CV structures used to generate custom application cover letters and intro letters.
+6. **Integrations (`/integrations`)**: Cloud setup to connect Gmail accounts (via secure Google OAuth tokens) and Google Drive syncing.
+7. **Profile (`/profile`)**: Dynamic parser details compiled from uploaded CV PDFs, containing skills, milestones, and education tags.
+8. **Settings (`/settings`)**: Account management, custom API rate limit controls, and data erasure tools.

@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui;
+
+  --color-brand-primary: #FD5D28;
+  /* Tellus Orange */
+  --color-brand-primary-hover: #E94F1F;
+  --color-brand-soft: #FFFBF9;
+  /* Warm White */
+  --color-brand-border: #FFD4C4;
+  --color-brand-dark: #000000;
+
+  --animate-marquee: marquee 35s linear infinite;
+  --animate-marquee-reverse: marquee-reverse 35s linear infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in: fadeIn 0.5s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  @keyframes marquee-reverse {
+    0% {
+      transform: translateX(-50%);
+    }
+
+    100% {
+      transform: translateX(0%);
+    }
+  }
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --section-alt: #FAFAFA;
+  --section-warm: #FFFCFA;
+
+  --font-inter: 'Inter', sans-serif;
+  --font-outfit: 'Outfit', sans-serif;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter);
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Alternating section backgrounds */
+.section-alt {
+  background-color: var(--section-alt);
+}
+
+.section-warm {
+  background-color: var(--section-warm);
+}
+
+/* Subtle card styling */
+.brand-card {
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.brand-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.brand-card-hover:hover {
+  background: #ffffff;
+  border-color: #e5e5e5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Text balance for headings */
+.text-balance {
+  text-wrap: balance;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Better selection highlight */
+::selection {
+  background-color: rgba(253, 93, 40, 0.15);
+  color: inherit;
+}
+
+.glow-card {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #f1f5f9;
+}
+
+.glow-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px -15px rgba(253, 93, 40, 0.12);
+  border-color: rgba(253, 93, 40, 0.25);
+}
+
+/* Gradient sections */
+.gradient-warm {
+  background: linear-gradient(135deg, #FFFBF9 0%, #FFF5EE 50%, #FFFBF9 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(160deg, #ffffff 0%, #FFF8F5 30%, #FFF1EB 60%, #FFFBF9 100%);
+}
+
+.gradient-cta {
+  background: linear-gradient(135deg, #FD5D28 0%, #F97316 50%, #FB923C 100%);
+}
+
+/* Shimmer line effect */
+.shimmer-line {
+  background: linear-gradient(90deg, transparent, rgba(253, 93, 40, 0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Dashed connector animation */
+.dash-animated {
+  animation: dash-scroll 1s linear infinite;
+}

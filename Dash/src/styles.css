@@ -1,0 +1,589 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Apply tab: fields match page — no white boxes */
+.apply-compose-root {
+  background-color: oklch(0.96 0.005 240);
+}
+
+.apply-compose-field,
+.apply-plain-field {
+  background-color: oklch(0.96 0.005 240) !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.apply-compose-field:focus,
+.apply-compose-field:focus-visible,
+.apply-plain-field:focus,
+.apply-plain-field:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.apply-plain-input {
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+}
+
+.apply-plain-input:focus,
+.apply-plain-input:focus-visible {
+  border-bottom-color: oklch(0.65 0.22 41) !important;
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* App surfaces (light content area) */
+  --background: oklch(0.975 0.005 240);
+  --foreground: oklch(0.18 0.02 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 250);
+
+  /* Orange brand */
+  --primary: oklch(0.65 0.22 41);
+  --primary-foreground: oklch(0.98 0.01 41);
+  --primary-soft: oklch(0.95 0.05 41);
+
+  --secondary: oklch(0.95 0.01 240);
+  --secondary-foreground: oklch(0.2 0.02 250);
+  --muted: oklch(0.96 0.005 240);
+  --muted-foreground: oklch(0.5 0.02 250);
+  --accent: oklch(0.95 0.05 41);
+  --accent-foreground: oklch(0.3 0.1 41);
+
+  --destructive: oklch(0.6 0.22 27);
+  --destructive-foreground: oklch(0.99 0.005 0);
+
+  --border: oklch(0.92 0.01 240);
+  --input: oklch(0.92 0.01 240);
+  --ring: oklch(0.65 0.22 41);
+
+  /* Light sidebar */
+  --sidebar: oklch(0.97 0.005 240);
+  --sidebar-foreground: oklch(0.25 0.02 250);
+  --sidebar-muted: oklch(0.55 0.02 250);
+  --sidebar-active: oklch(0.65 0.22 41);
+  --sidebar-active-foreground: oklch(0.98 0.01 41);
+  --sidebar-border: oklch(0.90 0.01 240);
+
+  /* Tellus orbital loader */
+  --loader-accent: oklch(0.52 0.14 250);
+  --loader-dot: oklch(0.72 0.02 250);
+}
+
+.dark {
+  --background: oklch(0.15 0.02 250);
+  --foreground: oklch(0.96 0.005 240);
+  --card: oklch(0.2 0.02 250);
+  --card-foreground: oklch(0.96 0.005 240);
+}
+
+.tellus-loader {
+  aspect-ratio: 1;
+  background:
+    radial-gradient(farthest-side, var(--primary) 90%, #0000) center/16px 16px,
+    radial-gradient(farthest-side, var(--loader-accent) 90%, #0000) bottom/12px 12px;
+  background-repeat: no-repeat;
+  animation: tellus-loader-spin 1s infinite linear;
+  position: relative;
+}
+
+.tellus-loader::before {
+  content: "";
+  position: absolute;
+  width: 8px;
+  aspect-ratio: 1;
+  inset: auto 0 16px;
+  margin: auto;
+  background: var(--loader-dot);
+  border-radius: 50%;
+  transform-origin: 50% calc(100% + 10px);
+  animation: inherit;
+  animation-duration: 0.5s;
+}
+
+@keyframes tellus-loader-spin {
+  100% {
+    transform: rotate(1turn);
+  }
+}
+
+.job-detail-loader {
+  width: 44px;
+  aspect-ratio: 1;
+  color: var(--primary);
+  position: relative;
+  background:
+    conic-gradient(from 134deg at top   ,currentColor 92deg,#0000 0) top,
+    conic-gradient(from -46deg at bottom,currentColor 92deg,#0000 0) bottom;
+  background-size: 100% 50%;
+  background-repeat: no-repeat;
+}
+.job-detail-loader::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  --g: currentColor 16px, #0000 0 calc(100% - 16px), currentColor 0;
+  background:
+    linear-gradient( 45deg, var(--g)),
+    linear-gradient(-45deg, var(--g));
+   animation: job-detail-l7 1.5s infinite cubic-bezier(0.3,1,0,1);
+}
+@keyframes job-detail-l7 {
+   33%  {inset:-8px;transform: rotate(0deg)}
+   66%  {inset:-8px;transform: rotate(90deg)}
+   100% {inset:0    ;transform: rotate(90deg)}
+}
+
+@media (max-width: 640px) {
+  .job-detail-loader {
+    width: 32px;
+  }
+  .job-detail-loader::before {
+    --g: currentColor 11.5px, #0000 0 calc(100% - 11.5px), currentColor 0;
+  }
+}
+
+/* Typewriter Loader for application pack generation */
+.typewriter {
+  --blue: var(--primary);
+  --blue-dark: oklch(0.55 0.20 41);
+  --key: var(--card);
+  --paper: var(--primary-soft);
+  --text: var(--muted-foreground);
+  --tool: oklch(0.79 0.15 85);
+  --duration: 3s;
+  position: relative;
+  -webkit-animation: bounce05 var(--duration) linear infinite;
+  animation: bounce05 var(--duration) linear infinite;
+}
+
+.typewriter .slide {
+  width: 92px;
+  height: 20px;
+  border-radius: 3px;
+  margin-left: 14px;
+  transform: translateX(14px);
+  background: linear-gradient(var(--blue), var(--blue-dark));
+  -webkit-animation: slide05 var(--duration) ease infinite;
+  animation: slide05 var(--duration) ease infinite;
+}
+
+.typewriter .slide:before, .typewriter .slide:after,
+.typewriter .slide i:before {
+  content: "";
+  position: absolute;
+  background: var(--tool);
+}
+
+.typewriter .slide:before {
+  width: 2px;
+  height: 8px;
+  top: 6px;
+  left: 100%;
+}
+
+.typewriter .slide:after {
+  left: 94px;
+  top: 3px;
+  height: 14px;
+  width: 6px;
+  border-radius: 3px;
+}
+
+.typewriter .slide i {
+  display: block;
+  position: absolute;
+  right: 100%;
+  width: 6px;
+  height: 4px;
+  top: 4px;
+  background: var(--tool);
+}
+
+.typewriter .slide i:before {
+  right: 100%;
+  top: -2px;
+  width: 4px;
+  border-radius: 2px;
+  height: 14px;
+}
+
+.typewriter .paper {
+  position: absolute;
+  left: 24px;
+  top: -26px;
+  width: 40px;
+  height: 46px;
+  border-radius: 5px;
+  background: var(--paper);
+  transform: translateY(46px);
+  -webkit-animation: paper05 var(--duration) linear infinite;
+  animation: paper05 var(--duration) linear infinite;
+}
+
+.typewriter .paper:before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 7px;
+  border-radius: 2px;
+  height: 4px;
+  transform: scaleY(0.8);
+  background: var(--text);
+  box-shadow: 0 12px 0 var(--text), 0 24px 0 var(--text), 0 36px 0 var(--text);
+}
+
+.typewriter .keyboard {
+  width: 120px;
+  height: 56px;
+  margin-top: -10px;
+  z-index: 1;
+  position: relative;
+}
+
+.typewriter .keyboard:before, .typewriter .keyboard:after {
+  content: "";
+  position: absolute;
+}
+
+.typewriter .keyboard:before {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  transform: perspective(10px) rotateX(2deg);
+  transform-origin: 50% 100%;
+}
+
+.typewriter .keyboard:after {
+  left: 2px;
+  top: 25px;
+  width: 11px;
+  height: 4px;
+  border-radius: 2px;
+  box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  -webkit-animation: keyboard05 var(--duration) linear infinite;
+  animation: keyboard05 var(--duration) linear infinite;
+}
+
+@keyframes bounce05 {
+  85%, 92%, 100% {
+    transform: translateY(0);
+  }
+
+  89% {
+    transform: translateY(-4px);
+  }
+
+  95% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes slide05 {
+  5% {
+    transform: translateX(14px);
+  }
+
+  15%, 30% {
+    transform: translateX(6px);
+  }
+
+  40%, 55% {
+    transform: translateX(0);
+  }
+
+  65%, 70% {
+    transform: translateX(-4px);
+  }
+
+  80%, 89% {
+    transform: translateX(-12px);
+  }
+
+  100% {
+    transform: translateX(14px);
+  }
+}
+
+@keyframes paper05 {
+  5% {
+    transform: translateY(46px);
+  }
+
+  20%, 30% {
+    transform: translateY(34px);
+  }
+
+  40%, 55% {
+    transform: translateY(22px);
+  }
+
+  65%, 70% {
+    transform: translateY(10px);
+  }
+
+  80%, 85% {
+    transform: translateY(0);
+  }
+
+  92%, 100% {
+    transform: translateY(46px);
+  }
+}
+
+@keyframes keyboard05 {
+  5%, 12%, 21%, 30%, 39%, 48%, 57%, 66%, 75%, 84% {
+    box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  }
+
+  9% {
+    box-shadow: 15px 2px 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 2px 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  }
+
+  18% {
+    box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 2px 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  }
+
+  27% {
+    box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 12px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  }
+
+  36% {
+    box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 12px 0 var(--key), 60px 12px 0 var(--key), 68px 12px 0 var(--key), 83px 10px 0 var(--key);
+  }
+
+  45% {
+    box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 2px 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  }
+
+  54% {
+    box-shadow: 15px 0 0 var(--key), 30px 2px 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  }
+
+  63% {
+    box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 12px 0 var(--key);
+  }
+
+  72% {
+    box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 2px 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  }
+
+  81% {
+    box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 12px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+  }
+}
+
+/* Send-action loader (4-dot expand + rotate) */
+.send-loader {
+  --sl-size: 50px;
+  --sl-dot: calc(var(--sl-size) / 2);
+  width: var(--sl-size);
+  aspect-ratio: 1;
+  color: var(--primary);
+  position: relative;
+  animation: sl-main 0.5s infinite alternate;
+}
+.send-loader::before,
+.send-loader::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: var(--sl-dot) var(--sl-dot);
+  background-position: 0 0, 100% 0, 100% 100%, 0 100%;
+  background-repeat: no-repeat;
+}
+.send-loader::before {
+  background-image:
+    radial-gradient(farthest-side at top    left , currentColor 96%, #0000),
+    radial-gradient(farthest-side at top    right, currentColor 96%, #0000),
+    radial-gradient(farthest-side at bottom right, currentColor 96%, #0000),
+    radial-gradient(farthest-side at bottom left , currentColor 96%, #0000);
+  animation: sl-expand 1s infinite;
+}
+.send-loader::after {
+  background-image:
+    radial-gradient(farthest-side at top    left , #0000 94%, currentColor 96%),
+    radial-gradient(farthest-side at top    right, #0000 94%, currentColor 96%),
+    radial-gradient(farthest-side at bottom right, #0000 94%, currentColor 96%),
+    radial-gradient(farthest-side at bottom left , #0000 94%, currentColor 96%);
+  animation: sl-rotate 1s infinite;
+}
+
+@keyframes sl-main {
+  0%   { transform: rotate(0deg) }
+  100% { transform: rotate(90deg) }
+}
+@keyframes sl-expand {
+  0%, 10%, 90%, 100% { inset: 0 }
+  40%, 60%           { inset: -10px }
+}
+@keyframes sl-rotate {
+  0%, 40%   { transform: rotate(0deg) }
+  60%, 100% { transform: rotate(90deg) }
+}
+
+/* Responsive: shrink on small screens */
+@media (max-width: 640px) {
+  .send-loader {
+    --sl-size: 36px;
+  }
+  .send-loader::before,
+  .send-loader::after {
+    background-size: calc(var(--sl-size) / 2) calc(var(--sl-size) / 2);
+  }
+  @keyframes sl-expand {
+    0%, 10%, 90%, 100% { inset: 0 }
+    40%, 60%           { inset: -7px }
+  }
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body { height: 100%; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Hide scrollbars on tablet/desktop; keep visible on mobile for scroll affordance */
+@media (min-width: 768px) {
+  *:not(.sidebar-scroll) {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  *:not(.sidebar-scroll)::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari and Opera */
+  }
+}
+
+/* Sidebar nav: isolated scroll layer + thin scrollbar for smoother desktop scrolling */
+.sidebar-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  contain: strict;
+  scrollbar-gutter: stable;
+}
+
+@media (min-width: 768px) {
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--color-border) 80%, transparent) transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar {
+    display: block;
+    width: 5px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--color-border) 70%, transparent);
+    border-radius: 999px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-border);
+  }
+}
+
+/* Skeleton Loading Shimmer */
+.skeleton {
+  background-color: color-mix(in oklch, var(--color-muted) 95%, black 5%);
+  position: relative;
+  overflow: hidden;
+}
+
+.dark .skeleton {
+  background-color: color-mix(in oklch, var(--color-muted) 90%, white 10%);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.4) 30%,
+    rgba(255, 255, 255, 0.7) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .skeleton::after {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 30%,
+    rgba(255, 255, 255, 0.12) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

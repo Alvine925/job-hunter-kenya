@@ -1,0 +1,17 @@
+User-agent: *
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /applications
+Disallow: /find-jobs
+Disallow: /monitors
+Disallow: /templates
+Disallow: /integrations
+Disallow: /marketplace
+Disallow: /onboarding
+Disallow: /error-report
+Disallow: /feedback
+Disallow: /auth/
+Allow: /login
+Allow: /privacy
+Allow: /terms

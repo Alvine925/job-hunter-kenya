@@ -1,0 +1,65 @@
+project_id = "eqkctzjyqmafpytvdepf"
+
+# Edge functions use Authorization header from the client; JWT verified in requireAuth().
+[functions.applications]
+verify_jwt = false
+
+[functions.auth-callback]
+verify_jwt = false
+
+[functions.auth-initiate]
+verify_jwt = false
+
+[functions.job-monitors]
+verify_jwt = false
+
+[functions.jobs]
+verify_jwt = false
+
+[functions.profile]
+verify_jwt = false
+
+[functions.scrape-cron]
+verify_jwt = false
+
+[functions.workflow]
+verify_jwt = false
+
+[functions.scrape-fuzu]
+verify_jwt = false
+
+[functions.scrape-brightermonday]
+verify_jwt = false
+
+[functions.scrape-myjobmag]
+verify_jwt = false
+
+[functions.scrape-myjobsinkenya]
+verify_jwt = false
+
+[functions.scrape-linkedin]
+verify_jwt = false
+
+[functions.scrape-all-sites]
+verify_jwt = false
+
+[functions.scrape-serpapi-google-jobs]
+verify_jwt = false
+
+[functions.scrape-linkedin-apify]
+verify_jwt = false
+
+[functions.login]
+verify_jwt = false
+
+[functions.welcome-email]
+verify_jwt = false
+
+[functions.signup-admin-notification]
+verify_jwt = false
+
+[functions.referral-notification]
+verify_jwt = false
+
+
+

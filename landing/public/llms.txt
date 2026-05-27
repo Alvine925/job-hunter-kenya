@@ -1,0 +1,38 @@
+# Tellus — Smart Job Application Workspace for Kenya
+
+Tellus (`https://tellusjobs.site`) is a free job search automation platform tailored for the Kenyan job market. It monitors leading local job boards and corporate career pages, calculates semantic profile-vacancy compatibility scores, optimizes resumes for applicant tracking systems (ATS), and automates application drafting directly within Gmail and Google Drive.
+
+## Primary Integrations & Supported Job Boards
+Tellus provides automated vacancy aggregation, CV mapping, and application staging for:
+- **Fuzu Kenya**: Scrapes and aggregates Fuzu listings, providing compatibility matching and custom cover letter generation.
+- **BrighterMonday Kenya**: Crawls and aggregates BrighterMonday openings. Helps users bypass repetitive forms by auto-generating targeted CV sections.
+- **MyJobsInKenya**: Scrapes MyJobsInKenya listings, calculating compatibility percentages and staging personalized intro emails.
+- **Corporate Career Portals**: Monitors private company career sections directly (e.g., Safaricom, Equity Bank, KCB, Airtel, etc.).
+
+## Core Features
+1. **Semantic CV Parser & Profile Modeler**: Upload a CV (PDF format). Tellus extracts skills, milestones, and qualifications into a standardized, machine-readable developer/professional profile.
+2. **0-100% Semantic Fit Scoring**: Analyzes job descriptions using contextual understanding (not just keyword matching) to evaluate match percentage with pros and cons.
+3. **Gmail Staging (OAuth)**: Generates tailored cover letters, CV profile summaries, and email drafts directly inside the user's Gmail drafts folder.
+4. **Google Drive Sync**: Zips and synchronizes application PDFs in organized cloud directories.
+5. **Smart Apply Mode**: Automatically triggers email dispatches for 90%+ matching positions crawled in the background (Power User tier).
+6. **Interview Coaching Guide**: Generates custom technical interview questions and prep notes based on the specific job description.
+
+## Site Structure & Navigation
+- **Home (`/`)**: Main landing page with the interactive match simulator and service summaries.
+- **Why Tellus? (`/problem-solution`)**: Details on the challenges of the Kenyan job hunt (ATS filters, form fatigue, tab overload) and how Tellus solves them.
+- **Features (`/features`)**: Deep dive into automated crawler sweeps, CV parsing, and application material previews.
+- **How it Works (`/how-it-works`)**: Explains the 5-phase pipeline: CV Parsing -> Scraper Sweep -> Semantic Match -> Gmail/Drive Sync -> Auto-Apply.
+- **Limits & Pricing (`/pricing`)**: Details on the referral limits system (Starter, Explorer, Power User levels).
+- **FAQ (`/faq`)**: List of 12 detailed questions and answers about CV safety, scraper updates, and Google OAuth settings.
+- **Privacy Policy (`/privacy`)**: Information on data protection in compliance with the Kenya Data Protection Act, 2019 and GDPR.
+- **Terms of Service (`/terms`)**: Platform usage rules, limit levels, and anti-fraud referral guidelines.
+
+## Service Limit Tiers
+- **Starter (Level 1, 0 referrals)**: 1 active CV, 5 job matches/day, 5 cover letters/month.
+- **Explorer (Level 2, 3 referrals)**: 3 CV versions, full semantic reason breakdowns, 30 cover letters/month, Gmail drafts staging, Google Drive sync.
+- **Power User (Level 3, 10 referrals)**: Smart Apply Mode (auto-apply), Interview Simulator (mock QA), unlimited CVs, unlimited crawls, custom portal monitoring.
+
+## Brand Assets & Resources
+- **Domain**: `https://tellusjobs.site`
+- **Support & Inquiries**: `privacy@tellusjobs.site`, `legal@tellusjobs.site`
+- **GitHub Repository**: `https://github.com/Alvine925/job-hunter-kenya`

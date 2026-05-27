@@ -1,0 +1,22 @@
+-- Daily scrape at 08:00 EAT (05:00 UTC).
+-- Enable in Supabase Dashboard: Database → Cron → New job
+--   Schedule: 0 5 * * *
+--   HTTP POST: https://<project-ref>.supabase.co/functions/v1/scrape-all-sites
+--   Headers: Authorization: Bearer <CRON_SECRET or SERVICE_ROLE_KEY>
+--
+-- Or run SQL below after enabling pg_cron + pg_net extensions.
+
+-- SELECT cron.schedule(
+--   'scrape-all-sites-8am-eat',
+--   '0 5 * * *',
+--   $$
+--   SELECT net.http_post(
+--     url := current_setting('app.settings.supabase_url') || '/functions/v1/scrape-all-sites',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'Authorization', 'Bearer ' || current_setting('app.settings.cron_secret')
+--     ),
+--     body := '{}'::jsonb
+--   ) AS request_id;
+--   $$
+-- );
