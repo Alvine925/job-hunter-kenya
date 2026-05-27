@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { TemplatesSkeleton } from "@/components/ui/skeleton-loaders";
 import { Loader2, PenSquare, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -164,11 +165,7 @@ function Templates() {
   const isLoading = templatesLoading || profileLoading;
 
   if (isLoading) {
-    return (
-      <div className="min-h-full bg-background flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <TemplatesSkeleton />;
   }
 
   return (

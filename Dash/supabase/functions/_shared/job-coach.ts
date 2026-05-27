@@ -257,7 +257,13 @@ async function discoverSimilarJobs(
   return fromDb.slice(0, 8);
 }
 
-export async function runJobCoachTurn(params: {
+export async function runJobCoachTurn({
+  supabase,
+  userId,
+  jobId,
+  userMessage,
+  transcript,
+}: {
   supabase: any;
   userId: string;
   jobId: string;
@@ -265,13 +271,13 @@ export async function runJobCoachTurn(params: {
   transcript: { role: string; content: string }[];
 }) {
   const [{ data: job, error: jobErr }, { data: profile, error: profErr }] = await Promise.all([
-    params.supabase.from("jobs").select("*").eq("id", jobId).eq("user_id", userId).single(),
-    params.supabase.from("profiles").select("*").eq("id", userId).single(),
+    supabase.from("jobs").select("*").eq("id", jobId).eq("user_id", userId).single(),
+    supabase.from("profiles").select("*").eq("id", userId).single(),
   ]);
   if (jobErr || !job) throw new Error("Job not found");
   if (profErr || !profile) throw new Error("Profile not found");
 
-  await saveCoachMessage(params.supabase, userId, jobId, "user", userMessage);
+  await saveCoachMessage(supabase, userId, jobId, "user", userMessage);
 
   const skills = Array.isArray(profile.skills)
     ? profile.skills.join(", ")
@@ -291,13 +297,13 @@ Name: ${profile.full_name ?? ""}
 Skills: ${skills}
 `;
 
-  const transcript = params.transcript
+  const chatLog = transcript
     .slice(-10)
     .map((m) => `${m.role === "user" ? "User" : "Coach"}: ${m.content}`)
     .join("\n\n");
 
   const ai = await aiJson<CoachAiReply>(
-    `${context}\n\nConversation:\n${transcript}\n\nUser: ${userMessage}\n\nReturn JSON with:
+    `${context}\n\nConversation:\n${chatLog}\n\nUser: ${userMessage}\n\nReturn JSON with:
 - reply: your coaching answer (plain text, 2-4 short paragraphs, use "you")
 - find_similar: true only if the user wants similar/other job listings to explore
 - search_terms: short job title or role keywords to search (e.g. "waitress Nairobi") when find_similar is true`,
@@ -309,7 +315,7 @@ Skills: ${skills}
 
   if (shouldFind) {
     similar_jobs = await discoverSimilarJobs(
-      params.supabase,
+      supabase,
       userId,
       jobId,
       job,
@@ -328,7 +334,7 @@ Skills: ${skills}
   }
 
   const saved = await saveCoachMessage(
-    params.supabase,
+    supabase,
     userId,
     jobId,
     "assistant",
@@ -357,7 +363,14 @@ export function interviewGreeting(firstName: string, jobTitle: string, company: 
   return `Hi ${name}, I'm the recruiter for ${org} interviewing you for ${role}. Turn on your microphone when you're ready — I'll ask one question at a time.`;
 }
 
-export async function runInterviewCoachTurn(params: {
+export async function runInterviewCoachTurn({
+  supabase,
+  userId,
+  jobId,
+  userMessage,
+  transcript,
+  interviewQuestions,
+}: {
   supabase: any;
   userId: string;
   jobId: string;
@@ -366,14 +379,14 @@ export async function runInterviewCoachTurn(params: {
   interviewQuestions?: { question: string; answer: string }[];
 }) {
   const [{ data: job, error: jobErr }, { data: profile, error: profErr }] = await Promise.all([
-    params.supabase.from("jobs").select("*").eq("id", jobId).eq("user_id", userId).single(),
-    params.supabase.from("profiles").select("*").eq("id", userId).single(),
+    supabase.from("jobs").select("*").eq("id", jobId).eq("user_id", userId).single(),
+    supabase.from("profiles").select("*").eq("id", userId).single(),
   ]);
   if (jobErr || !job) throw new Error("Job not found");
   if (profErr || !profile) throw new Error("Profile not found");
 
   await saveCoachMessage(
-    params.supabase,
+    supabase,
     userId,
     jobId,
     "user",
@@ -386,9 +399,9 @@ export async function runInterviewCoachTurn(params: {
     ? profile.skills.join(", ")
     : String(profile.skills ?? "");
 
-  const prepBlock = params.interviewQuestions?.length
+  const prepBlock = interviewQuestions?.length
     ? `\nSUGGESTED INTERVIEW TOPICS (use as inspiration, do not read answers aloud):\n${
-      params.interviewQuestions.map((q) => `- ${q.question}`).join("\n")
+      interviewQuestions.map((q) => `- ${q.question}`).join("\n")
     }\n`
     : "";
 
@@ -406,13 +419,13 @@ Skills: ${skills}
 ${prepBlock}
 `;
 
-  const transcript = params.transcript
+  const chatLog = transcript
     .slice(-12)
     .map((m) => `${m.role === "user" ? "Candidate" : "Recruiter"}: ${m.content}`)
     .join("\n\n");
 
   const ai = await aiJson<InterviewAiReply>(
-    `${context}\n\nInterview so far:\n${transcript}\n\nCandidate: ${userMessage}\n\nReturn JSON with:
+    `${context}\n\nInterview so far:\n${chatLog}\n\nCandidate: ${userMessage}\n\nReturn JSON with:
 - reply: your next spoken turn as the recruiter (1-3 short paragraphs). Ask ONE clear question at a time unless wrapping up. Be professional, specific to ${job.company ?? "the company"} and ${job.title}. Briefly acknowledge their last answer when natural.
 - interview_complete: true only after 6+ substantive exchanges when you would end the interview; then thank them and mention next steps.`,
     "You are a Kenyan hiring manager running a voice interview. Stay in character. Output strict JSON only.",
@@ -425,7 +438,7 @@ ${prepBlock}
   }
 
   const saved = await saveCoachMessage(
-    params.supabase,
+    supabase,
     userId,
     jobId,
     "assistant",

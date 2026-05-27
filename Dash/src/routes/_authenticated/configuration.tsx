@@ -39,6 +39,7 @@ import {
   Filter,
   Lock,
 } from "lucide-react";
+import { ConfigSkeleton } from "@/components/ui/skeleton-loaders";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
@@ -164,9 +165,12 @@ function Config() {
   const { data: integration } = useQuery({
     queryKey: ["user_integration"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
       const { data } = await supabase
         .from("user_integrations")
         .select("google_connected")
+        .eq("user_id", user.id)
         .maybeSingle();
       return data;
     },
@@ -177,9 +181,12 @@ function Config() {
   const { data: profileRow } = useQuery({
     queryKey: ["profile_plan"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
       const { data } = await (supabase as any)
         .from("profiles")
         .select("current_plan")
+        .eq("id", user.id)
         .single();
       return data;
     },
@@ -397,11 +404,7 @@ function Config() {
 
   const isLoading = listLoading || detailLoading || !form;
   if (isLoading) {
-    return (
-      <div className="min-h-full bg-background flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ConfigSkeleton />;
   }
 
   const currentPreset = presets.find((p) => p.id === selectedId);

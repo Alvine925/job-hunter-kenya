@@ -17,6 +17,8 @@ const ALLOWED_ORIGINS = [
   "https://www.tellusjobs.site",
   "https://tellusjobs.site",
   "https://myjobs.tellusjobs.site",
+  "https://dash.tellusjobs.site",
+  "https://tellus-jobs-kybc4uvbw-alvine925s-projects.vercel.app",
 ];
 
 export function getCorsHeaders(origin: string | null) {

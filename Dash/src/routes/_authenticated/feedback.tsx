@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FeedbackForm } from "@/components/feedback/feedback-form";
 import { Badge } from "@/components/ui/badge";
+import { FeedbackSkeleton } from "@/components/ui/skeleton-loaders";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/feedback")({
@@ -47,11 +48,7 @@ function FeedbackPage() {
   });
 
   if (authLoading) {
-    return (
-      <div className="min-h-full bg-background flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <FeedbackSkeleton />;
   }
 
   return (

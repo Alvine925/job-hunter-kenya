@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ProfileSkeleton } from "@/components/ui/skeleton-loaders";
 import type { LucideIcon } from "lucide-react";
 import {
   Loader2,
@@ -366,11 +367,7 @@ function Profile() {
   const set = (k: keyof ProfileForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   if (isLoading) {
-    return (
-      <div className="min-h-full bg-background flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   const hasCv = !!data?.profile?.cv_storage_path;

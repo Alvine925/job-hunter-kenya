@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireAuth, createAdminClient } from "../_shared/supabase.ts";
+import { errorResponse } from "../_shared/error-sanitizer.ts";
 import { prepareOrApplyJob } from "../_shared/application-engine.ts";
 import { resolveGoogleAccessToken } from "../_shared/google-auth.ts";
 import {
@@ -485,20 +486,6 @@ serve(async (req) => {
 
     throw new Error(`Unknown action: ${action}`);
   } catch (err) {
-    const rawMessage = err instanceof Error ? err.message : String(err);
-    console.error("Jobs edge function error:", err);
-    // Sanitize error messages (FIX 16)
-    const isUserFriendly =
-      rawMessage.includes("Missing") ||
-      rawMessage.includes("not found") ||
-      rawMessage.includes("limit") ||
-      rawMessage.includes("Complete your profile first") ||
-      rawMessage.includes("Unauthorized") ||
-      rawMessage.includes("Invalid");
-    const displayMessage = isUserFriendly ? rawMessage : "An unexpected server error occurred.";
-    return new Response(JSON.stringify({ error: displayMessage }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(err, "Jobs", corsHeaders);
   }
 });

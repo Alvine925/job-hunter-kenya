@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createAdminClient } from "../_shared/supabase.ts";
+import { errorResponse } from "../_shared/error-sanitizer.ts";
 import { prepareOrApplyJob } from "../_shared/application-engine.ts";
 import { refreshGoogleAccessToken } from "../_shared/google-auth.ts";
 import {
@@ -215,10 +216,6 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(err, "ScrapeCron", corsHeaders);
   }
 });

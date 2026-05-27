@@ -89,16 +89,6 @@ function Dashboard() {
   const name = profileData?.profile?.full_name || "Alvine";
   const firstName = name.split(" ")[0] || "Alvine";
 
-  if (isJobsLoading || isProfileLoading) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F19] w-full">
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1280px] mx-auto w-full">
-          <DashboardSkeleton />
-        </div>
-      </div>
-    );
-  }
-
   const high = jobs.filter((j: any) => (j.match_score ?? 0) >= 80);
   const inTracker = jobs.filter((j: any) => j.tracker_status !== "new").length;
   const pct = jobs.length ? ((high.length / jobs.length) * 100).toFixed(0) : 0;
@@ -134,6 +124,16 @@ function Dashboard() {
 
     return result;
   }, [sortedJobs, searchQuery, filterJobType, filterSource]);
+
+  if (isJobsLoading || isProfileLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F19] w-full">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1280px] mx-auto w-full">
+          <DashboardSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   const activeFilterCount = (filterJobType ? 1 : 0) + (filterSource ? 1 : 0);
 

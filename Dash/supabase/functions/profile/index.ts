@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireAuth } from "../_shared/supabase.ts";
+import { errorResponse } from "../_shared/error-sanitizer.ts";
 import { aiJson } from "../_shared/ai.ts";
 import { encodeBase64 } from "https://deno.land/std@0.203.0/encoding/base64.ts";
 
@@ -337,11 +338,6 @@ serve(async (req) => {
 
     throw new Error(`Unknown action: ${action}`);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("Profile Edge Function Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(err, "Profile", corsHeaders);
   }
 });

@@ -167,8 +167,8 @@ serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Referral email triggers failed:", err);
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 400,
+    return new Response(JSON.stringify({ error: "An unexpected server error occurred." }), {
+      status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }

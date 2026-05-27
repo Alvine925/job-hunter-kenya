@@ -1,4 +1,5 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { errorResponse } from "../_shared/error-sanitizer.ts";
 
 export default async (req: Request) => {
   const origin = req.headers.get("origin");
@@ -63,10 +64,6 @@ export default async (req: Request) => {
       },
     });
   } catch (error: any) {
-    console.error("Auth initiate error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(error, "AuthInitiate", corsHeaders);
   }
 };

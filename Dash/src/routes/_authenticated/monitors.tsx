@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { MonitorsSkeleton } from "@/components/ui/skeleton-loaders";
 import { Loader2, Plus, Trash2, RefreshCw, Globe, ExternalLink, PenSquare, Check, Lock, Gift, Copy, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -133,11 +134,7 @@ function Monitors() {
   };
 
   if (isLoading || profileLoading) {
-    return (
-      <div className="min-h-full bg-background flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <MonitorsSkeleton />;
   }
 
   return (
