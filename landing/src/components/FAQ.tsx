@@ -21,7 +21,7 @@ export default function FAQ() {
     {
       question: "Which job sites does the platform monitor?",
       answer:
-        "We currently scan and parse top job search sites and corporate portals daily. Listings are consolidated and matched to your profile automatically every morning at 8:00 AM EAT.",
+        "We currently scan and parse active vacancies in Kenya from top job boards (including BrighterMonday, Fuzu, MyJobsInKenya, MyJobMag, and LinkedIn Jobs), NGO listings, and corporate portals daily. Opportunities are consolidated and matched to your profile automatically every morning at 8:00 AM EAT.",
     },
     {
       question: "Can I review and edit the cover letter and email before sending?",

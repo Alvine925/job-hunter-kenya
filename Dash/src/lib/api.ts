@@ -309,10 +309,12 @@ function isLowQualityJob(job: {
   title?: string | null;
   company?: string | null;
   source_url?: string | null;
+  deadline_text?: string | null;
 }): boolean {
   const title = (job.title ?? "").trim();
   const company = (job.company ?? "").trim();
   const url = job.source_url ?? "";
+  const deadlineText = (job.deadline_text ?? "").trim();
 
   if (!title) return true;
   if (/^\d+\+?\s+.+\bjobs?\b/i.test(title)) return true;
@@ -322,6 +324,18 @@ function isLowQualityJob(job: {
 
   if (isInvalidEmployer(company)) {
     return true;
+  }
+
+  // Check if deadline_text is raw data (too short, only special chars, or unformatted)
+  if (deadlineText) {
+    // Skip if it's just numbers/IDs or HTML tags
+    if (/^[a-f0-9\-]{20,}$/.test(deadlineText) || /<[^>]+>/.test(deadlineText)) {
+      return true;
+    }
+    // Skip if it's too short to be a real deadline text
+    if (deadlineText.length < 5 && /^\d+$/.test(deadlineText)) {
+      return true;
+    }
   }
 
   if (url) {
@@ -381,6 +395,7 @@ export async function listJobs(): Promise<{ jobs: Record<string, unknown>[] }> {
       title: j.title as string | null,
       company: j.company as string | null,
       source_url: j.source_url as string | null,
+      deadline_text: j.deadline_text as string | null,
     }),
   );
 

@@ -116,6 +116,20 @@ export async function listScrapedJobs(opts?: {
         boardLabel(j).toLowerCase().includes(term),
     );
   }
+  
+  // Filter out raw deadline_text (too short, only IDs, or HTML)
+  rows = rows.filter((j) => {
+    const deadlineText = (j.deadline_text ?? "").trim();
+    if (!deadlineText) return true; // Allow empty deadline_text
+    
+    // Reject if it's just an ID or unformatted data
+    if (/^[a-f0-9\-]{20,}$/.test(deadlineText)) return false; // UUID
+    if (/<[^>]+>/.test(deadlineText)) return false; // HTML tags
+    if (deadlineText.length < 5 && /^\d+$/.test(deadlineText)) return false; // Short numbers only
+    
+    return true;
+  });
+  
   return rows;
 }
 

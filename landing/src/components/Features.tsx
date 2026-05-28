@@ -12,7 +12,7 @@ export default function Features({ bgClassName = "bg-white" }: FeaturesProps) {
     {
       number: "01",
       title: "Automated Daily Crawl & Scrape",
-      description: "Our background crawlers scour leading job search sites and corporate career pages every morning at 8:00 AM EAT. We aggregate, parse, and clean listings, consolidating active opportunities into a unified workspace feed so you never have to search multiple sites manually again.",
+      description: "Our background crawlers scour leading Kenyan job sites (including BrighterMonday, Fuzu, MyJobsInKenya, MyJobMag, and LinkedIn Jobs) and corporate career pages every morning at 8:00 AM EAT. We aggregate, parse, and clean listings, consolidating active vacancies in Kenya into a unified workspace feed so you never have to search multiple sites manually again.",
     },
     {
       number: "02",

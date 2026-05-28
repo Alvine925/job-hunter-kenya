@@ -39,7 +39,10 @@ function parseDateToIso(input: string): string | null {
     .replace(/,/g, "");
 
   const parsed = Date.parse(cleaned);
-  if (Number.isNaN(parsed)) return null;
+  if (Number.isNaN(parsed)) {
+    console.warn("Failed to parse date string to ISO:", input);
+    return null;
+  }
 
   const dt = new Date(parsed);
   const y = dt.getUTCFullYear();

@@ -4,12 +4,16 @@ import { Search } from "lucide-react";
 
 export default function Boards() {
   const boards = [
-    { name: "General Job Sites" },
-    { name: "Company Portals" },
-    { name: "NGO Job Boards" },
-    { name: "Remote Work Platforms" },
-    { name: "Professional Networks" },
-    { name: "Public Career Pages" },
+    { name: "BrighterMonday Vacancies" },
+    { name: "Fuzu Kenya Jobs" },
+    { name: "MyJobsInKenya Openings" },
+    { name: "MyJobMag Kenya" },
+    { name: "LinkedIn Kenya Jobs" },
+    { name: "NGO Vacancies in Kenya" },
+    { name: "Safaricom Career Portal" },
+    { name: "Equity Bank Careers" },
+    { name: "Remote Jobs Kenya" },
+    { name: "Government Jobs Kenya" },
   ];
 
   // Duplicate the list multiple times to allow infinite scrolling

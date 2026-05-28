@@ -114,35 +114,63 @@ function Settings() {
   const profile = profileData?.profile as any;
 
   const { data: referralsData } = useQuery({
-    queryKey: ["referrals"],
+    queryKey: ["referrals", user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await (supabase as any)
         .from("referrals")
-        .select("id, status, created_at, verified_at, referred_user_id")
+        .select("id, status, created_at, verified_at, referred_user_id, referrer_user_id")
+        .eq("referrer_user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[referrals] Query error:", error);
+        throw error;
+      }
+      
+      console.log("[referrals] Fetched referrals for user", user.id, ":", data);
+      
       if (data && data.length > 0) {
-        const referredIds = data.map((r: any) => r.referred_user_id);
+        const referredIds = data.map((r: any) => r.referred_user_id).filter(Boolean);
+        console.log("[referrals] Referred user IDs:", referredIds);
+        
+        if (referredIds.length === 0) {
+          console.warn("[referrals] No referred user IDs found");
+          return data.map((r: any) => ({ ...r, referred_name: "New Member", referred_email: "" }));
+        }
+        
         const { data: profiles, error: pErr } = await supabase
           .from("profiles")
           .select("id, email, full_name")
           .in("id", referredIds);
         
+        console.log("[referrals] Profiles fetched:", profiles, "error:", pErr);
+        
         if (!pErr && profiles) {
-          return data.map((r: any) => {
+          const mapped = data.map((r: any) => {
             const prof = profiles.find((p: any) => p.id === r.referred_user_id);
+            console.log(`[referrals] Mapping referral ${r.id}: profile =`, prof);
             return {
               ...r,
               referred_name: prof?.full_name || prof?.email || "New Member",
               referred_email: prof?.email || ""
             };
           });
+          console.log("[referrals] Final mapped data:", mapped);
+          return mapped;
         }
       }
-      return (data || []).map((r: any) => ({ ...r, referred_name: "New Member", referred_email: "" }));
+      
+      const result = (data || []).map((r: any) => ({ ...r, referred_name: "New Member", referred_email: "" }));
+      console.log("[referrals] Empty referrals, returning:", result);
+      return result;
     },
   });
+
+  // Calculate active referrals from actual data (count completed/verified only)
+  const activeReferralCount = referralsData?.filter((r: any) => r.status === "completed").length ?? 0;
 
   const { data: integration, isLoading: integrationLoading } = useQuery({
     queryKey: ["user_integrations", user?.id],
@@ -747,24 +775,24 @@ function Settings() {
                 <div className="space-y-2 py-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Active Referrals</span>
-                    <span className="font-bold text-foreground">{profile?.active_referrals ?? 0} / 10</span>
+                    <span className="font-bold text-foreground">{activeReferralCount} / 10</span>
                   </div>
                   <div className="w-full h-2.5 bg-slate-100 dark:bg-muted/30 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${Math.min(((profile?.active_referrals ?? 0) / 10) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((activeReferralCount / 10) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
 
                 <div className="text-xs text-muted-foreground leading-relaxed">
-                  {profile?.active_referrals >= 10 ? (
+                  {activeReferralCount >= 10 ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                       <CheckCircle className="w-3.5 h-3.5 shrink-0" /> Limits successfully upgraded!
                     </span>
                   ) : (
                     <span>
-                      Need <strong>{10 - (profile?.active_referrals ?? 0)}</strong> more successful referral(s) to unlock next 30-day upgrade cycle.
+                      Need <strong>{10 - activeReferralCount}</strong> more successful referral(s) to unlock next 30-day upgrade cycle.
                     </span>
                   )}
                 </div>
@@ -837,9 +865,6 @@ function Settings() {
                         <tr key={r.id} className="hover:bg-muted/20 text-foreground/90">
                           <td className="p-3 font-medium">
                             <div>{r.referred_name}</div>
-                            {r.referred_email && (
-                              <div className="text-[10px] text-muted-foreground font-normal mt-0.5">{r.referred_email}</div>
-                            )}
                           </td>
                           <td className="p-3 text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                           <td className="p-3">

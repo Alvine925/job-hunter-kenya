@@ -141,9 +141,12 @@ export const MarketplaceJobLine = memo(function MarketplaceJobLine({ job }: { jo
                 {job.application_status.label}
               </span>
             )}
-            {job.deadline_text && (
+            {(job.deadline_text || job.deadline) && (
               <span className="inline-flex items-center rounded-full bg-rose-50 dark:bg-rose-950/30 px-2.5 py-1 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
-                {job.deadline_text}
+                {job.deadline_text ||
+                  (job.deadline
+                    ? new Date(job.deadline).toLocaleDateString()
+                    : null)}
               </span>
             )}
           </div>

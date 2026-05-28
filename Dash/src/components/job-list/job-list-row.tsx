@@ -27,6 +27,7 @@ type Job = {
   application_email?: string | null;
   application_method?: string | null;
   deadline?: string | null;
+  deadline_text?: string | null; // Add deadline_text here
   application_status?: JobApplicationStatus | null;
   logo_url?: string | null;
 };

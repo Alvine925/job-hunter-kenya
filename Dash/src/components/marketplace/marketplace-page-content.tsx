@@ -59,9 +59,11 @@ function normalizeUserJob(j: Record<string, unknown>): ScrapedJob {
     application_email: (j.application_email as string) ?? null,
     application_method: (j.application_method as string) ?? null,
     deadline: (j.deadline as string) ?? null,
-    deadline_text: j.deadline
-      ? new Date(j.deadline as string).toLocaleDateString()
-      : null,
+    deadline_text: j.deadline_text
+      ? (j.deadline_text as string)
+      : j.deadline
+        ? new Date(j.deadline as string).toLocaleDateString()
+        : null,
     sector: (j.sector as string) ?? null,
     experience_level: null,
     education_level: null,

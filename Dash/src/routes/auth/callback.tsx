@@ -36,65 +36,80 @@ function AuthCallback() {
           return;
         }
 
-        if (!search.session_key) {
-          toast.error("Authentication failed: Missing session key");
-          navigate({ to: "/login", replace: true });
-          return;
-        }
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
+        const hasHashToken = window.location.hash.includes("access_token");
 
-        // Exchange session key for tokens securely via POST
-        const res = await fetch("/api/auth/exchange-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_key: search.session_key }),
-        });
-
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => ({}));
-          throw new Error(errBody.error || "Failed to exchange session key");
-        }
-
-        const data = await res.json();
-        const {
-          access_token,
-          refresh_token,
-          google_access_token,
-          google_refresh_token,
-          ref: returnedRef,
-        } = data;
-
-        if (access_token) {
-          const { error } = await supabase.auth.setSession({
-            access_token,
-            refresh_token: refresh_token || "",
-          });
+        if (code) {
+          // Native Supabase authorization code exchange
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
+          if (data.session) {
+            persistSessionToStorage(data.session);
+          }
+        } else if (hasHashToken) {
+          // Native Supabase hash fragment session (magic link recovery/invite)
+          const session = await ensureAuthSessionReady();
+          if (!session) throw new Error("Failed to initialize session from URL link");
+        } else if (search.session_key) {
+          // Exchange custom session key for tokens securely via POST
+          const res = await fetch("/api/auth/exchange-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_key: search.session_key }),
+          });
 
-          // Persist session to localStorage
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          if (session) {
-            persistSessionToStorage(session);
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            throw new Error(errBody.error || "Failed to exchange session key");
           }
 
-          if (google_access_token) {
-            try {
-              const { data: user } = await supabase.auth.getUser();
-              if (user.user) {
-                await supabase.from("user_integrations").upsert({
-                  user_id: user.user.id,
-                  google_access_token,
-                  google_refresh_token: google_refresh_token || "",
-                  google_connected: true,
-                  updated_at: new Date().toISOString(),
-                });
-                clearOnboardingCache();
+          const data = await res.json();
+          const {
+            access_token,
+            refresh_token,
+            google_access_token,
+            google_refresh_token,
+            ref: returnedRef,
+          } = data;
+
+          if (access_token) {
+            const { error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token: refresh_token || "",
+            });
+            if (error) throw error;
+
+            // Persist session to localStorage
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
+            if (session) {
+              persistSessionToStorage(session);
+            }
+
+            if (google_access_token) {
+              try {
+                const { data: user } = await supabase.auth.getUser();
+                if (user.user) {
+                  await supabase.from("user_integrations").upsert({
+                    user_id: user.user.id,
+                    google_access_token,
+                    google_refresh_token: google_refresh_token || "",
+                    google_connected: true,
+                    updated_at: new Date().toISOString(),
+                  });
+                  clearOnboardingCache();
+                }
+              } catch (err) {
+                console.warn("Failed to store Google tokens:", err);
               }
-            } catch (err) {
-              console.warn("Failed to store Google tokens:", err);
             }
           }
+        } else {
+          toast.error("Authentication failed: Missing session key or login link");
+          navigate({ to: "/login", replace: true });
+          return;
         }
 
         const { data: userData, error: userError } = await supabase.auth.getUser();

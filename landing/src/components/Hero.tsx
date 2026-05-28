@@ -11,13 +11,13 @@ export default function Hero() {
         <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           {/* Hero Left Content */}
           <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left animate-fade-in">
-            <h1 className="font-display font-extrabold text-[1.65rem] xs:text-3xl sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.12] mb-6 text-slate-900">
-              Stop Searching.<br />
-              <span className="text-brand-primary whitespace-nowrap">Get Instantly Matched</span> to Your Next Career.
+            <h1 className="font-display font-extrabold text-[1.65rem] xs:text-3xl sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.12] mb-6 text-slate-900 text-balance">
+              Active Vacancies in Kenya.<br />
+              <span className="text-brand-primary whitespace-nowrap">Get Instantly Matched</span> & Auto-Apply.
             </h1>
 
             <p className="text-sm sm:text-lg text-slate-500 max-w-xl mb-8 leading-relaxed">
-              Tellus scans top job boards and corporate career portals daily, aligns requirements directly with your CV, and helps you prepare complete, tailored application packages instantly.
+              Consolidate latest jobs in Nairobi, NGO jobs in Kenya today, and major bank openings. Tellus matches active vacancies directly to your CV and drafts ready-to-send application packs automatically.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">

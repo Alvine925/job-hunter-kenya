@@ -89,6 +89,20 @@ function Dashboard() {
   const name = profileData?.profile?.full_name || "Alvine";
   const firstName = name.split(" ")[0] || "Alvine";
 
+  // Fetch referrals to calculate accurate active count
+  const { data: referralsData = [] } = useQuery({
+    queryKey: ["referrals"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("referrals")
+        .select("id, status")
+        .eq("status", "completed");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const activeReferralCount = referralsData.length;
+
   const high = jobs.filter((j: any) => (j.match_score ?? 0) >= 80);
   const inTracker = jobs.filter((j: any) => j.tracker_status !== "new").length;
   const pct = jobs.length ? ((high.length / jobs.length) * 100).toFixed(0) : 0;
@@ -338,7 +352,7 @@ function Dashboard() {
                     </div>
                     <div className="flex justify-between items-center text-xs mt-1 pt-1.5 border-t border-slate-100 dark:border-border/5">
                       <span className="text-muted-foreground">
-                        Cycle progress: <strong>{profileData.profile.active_referrals ?? 0}/10</strong> referred
+                        Cycle progress: <strong>{activeReferralCount}/10</strong> referred
                       </span>
                       <Link to="/settings" className="text-primary font-bold hover:underline">
                         View stats →

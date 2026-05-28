@@ -75,6 +75,7 @@ export function NotificationBell({ collapsed = false }: { collapsed?: boolean })
       const { data, error } = await (supabase as any)
         .from("notifications")
         .select("*")
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -88,20 +89,29 @@ export function NotificationBell({ collapsed = false }: { collapsed?: boolean })
 
   // 3. Mark All as Read Mutation
   const markAllReadMut = useMutation({
-    mutationFn: async () => {
-      if (!userId) return;
-      const { error } = await (supabase as any)
+    mutationFn: async (userIdParam: string) => {
+      console.log("[notifications] Marking all as read for user:", userIdParam);
+      const { error, data } = await (supabase as any)
         .from("notifications")
         .update({ read: true })
-        .eq("user_id", userId)
+        .eq("user_id", userIdParam)
         .eq("read", false);
-      if (error) throw error;
+      
+      if (error) {
+        console.error("[notifications] Update error:", error);
+        throw error;
+      }
+      console.log("[notifications] Updated rows:", data);
     },
     onSuccess: () => {
+      console.log("[notifications] Mark all read success, invalidating query");
       queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
       toast.success("All notifications marked as read");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.error("[notifications] Mark all read failed:", e.message);
+      toast.error(e.message);
+    },
   });
 
   // 4. Mark Single as Read Mutation
@@ -212,8 +222,16 @@ export function NotificationBell({ collapsed = false }: { collapsed?: boolean })
               variant="ghost"
               size="sm"
               className="h-8 text-xs font-semibold text-primary hover:text-primary hover:bg-primary/10 gap-1 rounded-lg"
-              onClick={() => markAllReadMut.mutate()}
-              disabled={markAllReadMut.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log("[notifications] Mark all button clicked, userId:", userId);
+                if (userId) {
+                  markAllReadMut.mutate(userId);
+                } else {
+                  console.warn("[notifications] No userId available");
+                }
+              }}
+              disabled={markAllReadMut.isPending || !userId}
             >
               <Check className="w-3.5 h-3.5" />
               Mark all read
