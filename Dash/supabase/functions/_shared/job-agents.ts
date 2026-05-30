@@ -252,7 +252,7 @@ export async function runCoverLetterAgent(params: {
 LETTER DATE (mandatory — use exactly this as the first line of the cover letter, do not invent or guess any other date):
 ${dateLine}
 
-TEMPLATE STRUCTURE & FORMAT REFERENCE (follow this layout):
+TEMPLATE STRUCTURE & FORMAT REFERENCE (follow this layout as a content guide, but do not write section titles/headers):
 ${template}
 
 CANDIDATE DATA:
@@ -277,20 +277,21 @@ REQUIREMENTS: ${job.requirements ?? ""}
 TONE: ${tone}
 
 INSTRUCTIONS:
-1. Use the template's 6-section structure as your guide
-2. Maintain the same format, tone, and flow as the template
-3. Replace all bracketed instructions and examples with real personalized content from the candidate's CV
-4. Extract actual achievements, skills, and experience from the work history
-5. Tailor all content specifically to this job and company
-6. Keep the professional, structured format of the template
-7. Write naturally - no placeholders or brackets should remain
-8. Total length: 300-350 words
-9. PLAIN TEXT ONLY: no markdown (#, *, bullets with asterisks, --- dividers, or em dashes). Use a normal hyphen (-) only. Section headings on their own line as "1. Introduction", "2. Why I Am Interested", etc. (no # prefix).
+1. Use the template's 6-section structure as your guide for what content to include in each paragraph, but do NOT output any section headings, numbers, titles, or separators (such as "1. Introduction", "Why I Am Interested", or "---").
+2. Maintain the professional tone and flow of the template, but write the body of the letter as standard continuous paragraphs without any section titles, headings, or dividers.
+3. Replace all bracketed instructions and examples with real personalized content from the candidate's CV.
+4. Extract actual achievements, skills, and experience from the work history.
+5. Tailor all content specifically to this job and company.
+6. Keep the professional cover letter structure (Date, recipient details, a bolded subject line, salutation, body paragraphs, and professional sign-off), but do NOT include any sub-headers, section titles, or section numbers in the body.
+7. Write naturally - no placeholders or brackets should remain.
+8. Total length: 300-350 words.
+9. PLAIN TEXT ONLY: no markdown (#, *, bullets with asterisks, --- dividers, or em dashes). Use a normal hyphen (-) only. Do NOT output any section headings or titles (such as "Introduction", "Why I Am Interested", etc.). The letter must be a single, continuous, flow of professional paragraphs.
 10. The first line of cover_letter MUST be exactly the LETTER DATE above — never use [Date], placeholders, or a different calendar day.
 11. Do not include salary figures, notice periods, or start dates unless they appear in the candidate data below.
-12. Return JSON with key "cover_letter" only
+12. Include a professional subject line starting with '**RE:**' (wrapped in double asterisks to render in bold, e.g., '**RE: APPLICATION FOR THE POSITION OF [JOB TITLE]**') right before the salutation ('Dear Hiring Manager,') and after the recipient's details.
+13. Return JSON with key "cover_letter" only
 
-Create a cover letter that reads like the template but with all real content about THIS candidate for THIS job.`,
+Create a cover letter that follows the template's structure but is written as a continuous letter with no section titles, using all real content about THIS candidate for THIS job.`,
     "You are an expert career coach. Output strict JSON only.",
   );
 }
@@ -362,7 +363,7 @@ ${siteProfile.formResponseTemplate}
     : "questions_and_answers (array of fields/questions detected from the application page when visible, otherwise likely form questions, each with a copy-paste-ready tailored answer)";
 
   const jsonStructure = `{
-  "cover_letter": "~300 words, PLAIN TEXT only — no #, *, ---, or em dashes",
+  "cover_letter": "~300 words, PLAIN TEXT only — no #, *, ---, or em dashes, and absolutely NO section headings, titles, or numbers (must be a continuous letter of paragraphs with a bolded RE: subject line)",
   "email_subject": "string",
   "email_body": "string",
   "questions_and_answers": [{"question": "string", "answer": "string"}, ...],
@@ -394,6 +395,9 @@ ${applicationPage.slice(0, 6000)}
 
 ${qaRule}
 
+ADDITIONAL COVER LETTER INSTRUCTIONS:
+- For cover_letter: Write it as a professional cover letter with Date, recipient details, a bolded subject line starting with '**RE:**' (e.g. '**RE: APPLICATION FOR THE POSITION OF [JOB TITLE]**'), salutation, and standard continuous paragraphs. Do NOT output any section headings, sub-headers, numbers, titles, or dividers (like "1. Introduction", "Introduction", or "---").
+
 CRITICAL: Return ONLY valid JSON in this exact structure (no markdown, no extra text):
 ${jsonStructure}`,
     "You are a Kenyan job-application assistant. Return STRICT JSON only. All arrays must be actual arrays, all values must be strings or null.",
@@ -407,8 +411,7 @@ export async function runInterviewPrepAgent(params: {
 }) {
   const { profile, job, existingQuestions } = params;
   const existingBlock = existingQuestions?.length
-    ? `\nEXISTING PREP (regenerate with fresh angles, do not copy verbatim):\n${
-      existingQuestions.map((q) => `Q: ${q.question}\nA: ${q.answer}`).join("\n\n")
+    ? `\nEXISTING PREP (regenerate with fresh angles, do not copy verbatim):\n${existingQuestions.map((q) => `Q: ${q.question}\nA: ${q.answer}`).join("\n\n")
     }\n`
     : "";
 
@@ -494,3 +497,111 @@ Rules:
     "You extract structured job listings from career pages. Return strict JSON only.",
   );
 }
+
+export type CvTailorDraft = {
+  tailored_cv: string;
+};
+
+export async function runCvTailorAgent(params: {
+  profile: any;
+  job: any;
+}) {
+  const { profile, job } = params;
+
+  return aiJson<CvTailorDraft>(
+    `You are an expert resume writer and career coach. Tailor the candidate's CV/Resume specifically for this job description to make it highly relevant and stand out.
+
+CANDIDATE PROFILE:
+NAME: ${profile.full_name ?? ""}
+EMAIL: ${profile.email ?? ""}
+PHONE: ${profile.phone ?? ""}
+LINKEDIN: ${profile.linkedin_url ?? ""}
+LOCATION: ${profile.preferred_county ? `${profile.preferred_county} County, Kenya` : ""}
+SKILLS: ${(profile.skills ?? []).join(", ")}
+SUMMARY: ${profile.professional_summary ?? ""}
+WORK HISTORY: ${profile.work_history ?? ""}
+EDUCATION: ${profile.education ?? ""}
+CERTIFICATIONS: ${profile.certifications ?? ""}
+LANGUAGES: ${profile.languages ?? ""}
+
+ORIGINAL FULL CV TEXT (Use this as the primary source of truth for all sections, details, projects, references, hobbies, etc.):
+${profile.parsed_cv_text ?? ""}
+
+JOB DETAILS:
+TITLE: ${job.title}
+COMPANY: ${job.company ?? ""}
+LOCATION: ${job.location ?? ""}
+REQS: ${job.requirements ?? ""}
+RESPONSIBILITIES: ${job.responsibilities ?? ""}
+DESC: ${(job.description ?? "").slice(0, 4000)}
+
+INSTRUCTIONS:
+1. Tailor the Professional Summary so it highlights exactly the experiences and achievements that directly match the job description.
+2. Reorder, group, or adapt the Skills list to emphasize key skills requested by the employer.
+3. Revise Work History descriptions (bullet points and accomplishments) to mirror the language, actions, and keywords in the job responsibilities, while keeping everything truthful to the candidate's original history. DO NOT omit, truncate, or drop any roles, companies, dates, or details from the candidate's history — all original entries must be preserved in the tailored CV.
+4. Keep the original contact details, education, certifications,references and languages unchanged. Ensure ALL sections present in the ORIGINAL FULL CV TEXT (including References, Projects, Publications, Volunteering, Hobbies, Certifications, Languages, and any other sections) are fully preserved and represented in the output tailored CV; do not drop, summarize out, or omit any sections.
+5. Formatting: Return the tailored CV formatted as a clean, professional, readable plain text resume.
+6. PLAIN TEXT ONLY: do not output markdown headers (#), bolding (*), dividers (---), or complex formatting. Use capital letters for section headers (e.g., PROFESSIONAL SUMMARY, WORK EXPERIENCE, EDUCATION, CERTIFICATIONS) on their own line. Use simple hyphens (-) for lists.
+7. Return JSON with key "tailored_cv" only.`,
+    "You are an expert resume writer. Output strict JSON only."
+  );
+}
+
+export type AtsAnalysisResult = {
+  score: number;
+  matched: string[];
+  missing: string[];
+  checks: { name: string; status: "pass" | "warning" | "fail"; desc: string }[];
+  recommendations: { section: string; current: string; suggestion: string }[];
+  summary: string;
+};
+
+export async function runAtsScoreAgent(params: {
+  cvText: string;
+  jdText: string;
+}) {
+  const { cvText, jdText } = params;
+
+  return aiJson<AtsAnalysisResult>(
+    `You are an expert ATS (Applicant Tracking System) optimization agent and career coach.
+Analyze the candidate's CV/Resume text against the target Job Description to evaluate ATS compatibility, calculate a realistic score, identify matched and missing keywords, perform structural checks, and provide highly actionable improvements.
+
+CANDIDATE CV/RESUME TEXT:
+${cvText.slice(0, 30000)}
+
+TARGET JOB DESCRIPTION:
+${jdText.slice(0, 15000)}
+
+INSTRUCTIONS:
+1. Calculate a realistic ATS compatibility score (0 to 100) based on how well the CV aligns with the skills, experience, and terminology of the Job Description. Be honest; if the CV has major gaps, the score should reflect that (e.g., below 65).
+2. Extract the actual keywords/skills from the Job Description. Split them into:
+   - "matched": Keywords/skills present in the CV text.
+   - "missing": Critical keywords/skills present in the Job Description but missing or weak in the CV.
+3. Perform standard ATS structural checks (at least 4 checks, returning "pass", "warning", or "fail" for each):
+   - "Contact Information": Verify if email, phone, and professional links are present.
+   - "Resume Length & Structure": Evaluate if the length is optimal (~300-1000 words) and structure is clean.
+   - "Action Verb Density": Check if strong action verbs (e.g., "managed", "led", "developed", "delivered", "optimized") are heavily used.
+   - "Formatting Flags": Flag potential parsing risks like multi-column layouts, tables, or missing headings.
+4. Provide 3-5 concrete sections to improve in "recommendations". For each recommendation, specify:
+   - "section": The section name (e.g., "Professional Summary", "Experience / History", "Skills List", "Certifications").
+   - "current": What is currently written or missing in that section of the CV.
+   - "suggestion": Exact, rewrite-ready text or direct improvements they should make to address the gap.
+5. Provide a 2-3 sentence overall professional "summary" explaining the rating and the highest-priority action item.
+
+Return strict JSON only in this format:
+{
+  "score": 75,
+  "matched": ["React", "TypeScript", "Agile"],
+  "missing": ["Node.js", "AWS", "CI/CD"],
+  "checks": [
+    { "name": "Contact Information", "status": "pass", "desc": "Email and phone number are properly formatted." }
+  ],
+  "recommendations": [
+    { "section": "Skills List", "current": "Missing AWS and Node.js", "suggestion": "Add a dedicated section for Cloud Tools and Backend including Amazon Web Services (AWS) and Node.js/Express." }
+  ],
+  "summary": "Your resume has a solid foundation for front-end roles but lacks backend/cloud terms requested in the description."
+}`,
+    "You are an ATS Optimization Agent. Output strict JSON only."
+  );
+}
+

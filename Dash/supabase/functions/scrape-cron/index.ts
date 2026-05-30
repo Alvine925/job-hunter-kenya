@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createAdminClient } from "../_shared/supabase.ts";
@@ -14,6 +15,10 @@ import {
   scrapeJobMonitor,
   type JobMonitorRow,
 } from "../_shared/scrape-monitors.ts";
+import {
+  matchScrapedJobForUser,
+  attachScrapedJobToUser,
+} from "../_shared/open-scraped-job.ts";
 
 async function getTemplate(supabase: any, userId: string, type: string) {
   const { data } = await supabase
@@ -36,11 +41,8 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     const cronSecret = Deno.env.get("CRON_SECRET");
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-      if (authHeader !== `Bearer ${anonKey}`) {
-        throw new Error("Unauthorized");
-      }
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      throw new Error("Unauthorized");
     }
 
     const supabaseAdmin = createAdminClient();
@@ -48,6 +50,12 @@ serve(async (req) => {
       .from("workflows")
       .select("*")
       .eq("active", true);
+
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: freshScrapedJobs } = await supabaseAdmin
+      .from("scraped_jobs")
+      .select("*")
+      .gte("scraped_at", twentyFourHoursAgo);
 
     let total = 0;
     let drafted = 0;
@@ -147,6 +155,53 @@ serve(async (req) => {
             if (outcome.action === "packed") packed++;
             if (outcome.action === "auth_required") authRequired++;
             if (outcome.action === "skipped_existing_application") skipped++;
+          }
+        }
+
+        // Process background matching of fresh scraped jobs
+        if (freshScrapedJobs && freshScrapedJobs.length > 0) {
+          for (const scrapedJob of freshScrapedJobs) {
+            try {
+              const { matchData } = await matchScrapedJobForUser(
+                supabaseAdmin,
+                workflow.user_id,
+                scrapedJob,
+              );
+              
+              const scoreThreshold = workflow.min_match_score ?? 80;
+              if (matchData && matchData.score >= scoreThreshold) {
+                const inserted = await attachScrapedJobToUser(
+                  supabaseAdmin,
+                  workflow.user_id,
+                  scrapedJob,
+                  matchData,
+                );
+                
+                if (inserted) {
+                  total++;
+                  const isUpgraded = profile.current_plan === "upgraded";
+                  const mode = (workflow.application_mode === "automatic" || workflow.auto_apply) && isUpgraded
+                    ? "automatic"
+                    : "manual";
+                  const outcome = await prepareOrApplyJob({
+                    supabase: supabaseAdmin,
+                    userId: profile.id,
+                    job: inserted,
+                    profile,
+                    mode,
+                    tone: workflow.cover_letter_tone ?? "Formal",
+                    googleAccessToken,
+                  });
+                  if (outcome.action === "sent") sent++;
+                  if (outcome.action === "drafted") drafted++;
+                  if (outcome.action === "packed") packed++;
+                  if (outcome.action === "auth_required") authRequired++;
+                  if (outcome.action === "skipped_existing_application") skipped++;
+                }
+              }
+            } catch (err) {
+              console.error(`Failed background match for job ${scrapedJob.id}:`, err);
+            }
           }
         }
       } catch (e) {

@@ -5,24 +5,37 @@ import {
   clearOnboardingCache,
   ensureAuthSessionReady,
   persistSessionToStorage,
+  getOnboardingStatus,
 } from "@/lib/auth-session";
 import { clearUserScopedQueries, prefetchMarketplaceQueries } from "@/lib/marketplace-prefetch";
 import { queryClient } from "@/lib/query-client";
 import { AuthFlowOverlay } from "@/components/auth/auth-flow-overlay";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/auth/callback")({ component: AuthCallback });
+export const Route = createFileRoute("/auth/callback")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      session_key: (search.session_key as string) || undefined,
+      ref: (search.ref as string) || undefined,
+      error: (search.error as string) || undefined,
+      redirect: (search.redirect as string) || undefined,
+    };
+  },
+  component: AuthCallback,
+});
 
 const POST_LOGIN_WELCOME_KEY = "tellus_show_welcome_after_login";
+
+function safeInternalRedirect(value: string | undefined, fallback?: string) {
+  if (!value) return fallback;
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("://")) return fallback;
+  return value;
+}
 
 function AuthCallback() {
   const navigate = useNavigate();
   const processed = useRef(false);
-  const search = useSearch({ from: "/auth/callback" }) as {
-    session_key?: string;
-    ref?: string;
-    error?: string;
-  };
+  const search = useSearch({ from: "/auth/callback" });
 
   useEffect(() => {
     if (processed.current) return;
@@ -30,6 +43,7 @@ function AuthCallback() {
 
     const handleCallback = async () => {
       try {
+        let returnedRef: string | undefined;
         if (search.error) {
           toast.error("Authentication failed: " + search.error);
           navigate({ to: "/login", replace: true });
@@ -70,8 +84,9 @@ function AuthCallback() {
             refresh_token,
             google_access_token,
             google_refresh_token,
-            ref: returnedRef,
+            ref: refFromServer,
           } = data;
+          returnedRef = refFromServer;
 
           if (access_token) {
             const { error } = await supabase.auth.setSession({
@@ -126,7 +141,7 @@ function AuthCallback() {
         if (refCode) {
           try {
             console.log(`[Referral] Attempting to claim referral with code: ${refCode}`);
-            const { error: rpcError } = await supabase.rpc("claim_referral", {
+            const { error: rpcError } = await (supabase as any).rpc("claim_referral", {
               ref_code: refCode,
             });
             if (rpcError) {
@@ -145,7 +160,31 @@ function AuthCallback() {
         sessionStorage.setItem(POST_LOGIN_WELCOME_KEY, "true");
         // Warm the cache in the background — don't block navigation on it.
         void prefetchMarketplaceQueries(queryClient);
-        navigate({ to: "/marketplace", replace: true });
+
+        // Store redirect to localStorage if present in query parameter
+        if (search.redirect) {
+          localStorage.setItem("post_auth_redirect", safeInternalRedirect(search.redirect, "/marketplace"));
+        }
+
+        const { hasCv, hasSetPassword, onboardingCompleted } = await getOnboardingStatus(sessionUser.id);
+        const needsOnboarding = !hasSetPassword || (!onboardingCompleted && !hasCv);
+
+        const target = safeInternalRedirect(
+          search.redirect || localStorage.getItem("post_auth_redirect") || undefined,
+          "/marketplace",
+        );
+        
+        if (!needsOnboarding) {
+          localStorage.removeItem("post_auth_redirect");
+        }
+
+        if (target.includes("?")) {
+          const [path, searchStr] = target.split("?");
+          const searchObj = Object.fromEntries(new URLSearchParams(searchStr));
+          navigate({ to: path as any, search: searchObj as any, replace: true });
+        } else {
+          navigate({ to: target as any, replace: true });
+        }
       } catch (error: unknown) {
         console.error("Auth callback error:", error);
         toast.error(
@@ -161,6 +200,7 @@ function AuthCallback() {
     search.session_key,
     search.error,
     search.ref,
+    search.redirect,
   ]);
 
   return <AuthFlowOverlay message="Finishing sign in…" />;

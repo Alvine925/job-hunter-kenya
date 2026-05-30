@@ -5,7 +5,7 @@ import { boardLabel, scanApplicationMethod, type ScrapedJob } from "@/lib/scrape
 import { cn } from "@/lib/utils";
 import { ArrowRight, ExternalLink, MapPin, Mail, ClipboardList, Briefcase, Sparkles } from "lucide-react";
 
-export const MarketplaceJobLine = memo(function MarketplaceJobLine({ job }: { job: ScrapedJob }) {
+export const MarketplaceJobLine = memo(function MarketplaceJobLine({ job, isAuthenticated }: { job: ScrapedJob; isAuthenticated: boolean }) {
   const navigate = useNavigate();
   const location = [job.location, job.county].filter(Boolean).join(", ");
   const board = boardLabel(job);
@@ -18,6 +18,16 @@ export const MarketplaceJobLine = memo(function MarketplaceJobLine({ job }: { jo
   const isEmail = appMethod === "email";
 
   const openJob = () => {
+    if (!isAuthenticated) {
+      const targetPath = job.id.startsWith("user_")
+        ? `/jobs/${job.id.slice(5)}`
+        : `/marketplace/${job.id}`;
+      void navigate({
+        to: "/login",
+        search: { redirect: targetPath },
+      });
+      return;
+    }
     if (job.id.startsWith("user_")) {
       void navigate({ to: "/jobs/$id", params: { id: job.id.slice(5) } });
       return;
@@ -38,7 +48,7 @@ export const MarketplaceJobLine = memo(function MarketplaceJobLine({ job }: { jo
       }}
       className={cn(
         "group relative w-full text-left cursor-pointer transition-colors",
-        "max-sm:rounded-xl max-sm:border max-sm:border-border/80 max-sm:bg-background max-sm:p-4 max-sm:shadow-sm",
+        "max-sm:py-4 max-sm:px-1",
         "sm:flex sm:gap-4 sm:px-5 sm:py-4",
         "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
       )}

@@ -5,6 +5,7 @@ import {
   toggleSaveJob,
   generateAndSaveLetter,
   generateApplicationPack,
+  generateTailoredCv,
   generateInterviewQuestions,
   updateApplicationDraft,
   sendApplicationEmail,
@@ -218,7 +219,7 @@ function JobDetail() {
       if (!user) return null;
       const { data: p } = await supabase
         .from("profiles")
-        .select("skills, full_name, email, referral_code")
+        .select("skills, full_name, email")
         .eq("id", user.id)
         .single();
       return p;
@@ -230,6 +231,7 @@ function JobDetail() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [letter, setLetter] = useState("");
+  const [tailoredCv, setTailoredCv] = useState("");
   const [includeCv, setIncludeCv] = useState(true);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [referralPromptOpen, setReferralPromptOpen] = useState(false);
@@ -249,16 +251,27 @@ function JobDetail() {
 
   useEffect(() => {
     if (!data?.application) return;
-    setSubject(data.application.email_subject ?? "");
-    setBody(data.application.email_body ?? "");
-    setLetter(sanitizePlainDocumentText(data.application.cover_letter ?? ""));
-  }, [data?.application?.id]);
+    setSubject((prev) => prev !== (data.application.email_subject as string ?? "") ? (data.application.email_subject as string ?? "") : prev);
+    setBody((prev) => prev !== (data.application.email_body as string ?? "") ? (data.application.email_body as string ?? "") : prev);
+    setLetter((prev) => {
+      const dbVal = sanitizePlainDocumentText(data.application.cover_letter as string ?? "");
+      return prev !== dbVal ? dbVal : prev;
+    });
+    setTailoredCv((prev) => prev !== (data.application.tailored_cv as string ?? "") ? (data.application.tailored_cv as string ?? "") : prev);
+  }, [
+    data?.application?.id,
+    data?.application?.email_subject,
+    data?.application?.email_body,
+    data?.application?.cover_letter,
+    data?.application?.tailored_cv,
+  ]);
 
   const appDraft = data?.application;
   const hasUnsavedChanges = !!appDraft?.id && (
     subject !== (appDraft.email_subject ?? "") ||
     body !== (appDraft.email_body ?? "") ||
     sanitizePlainDocumentText(letter) !== sanitizePlainDocumentText(appDraft.cover_letter ?? "") ||
+    tailoredCv !== (appDraft.tailored_cv ?? "") ||
     to !== (appDraft.application_email ?? "")
   );
 
@@ -273,6 +286,7 @@ function JobDetail() {
           email_subject: subject,
           email_body: body,
           cover_letter: sanitizePlainDocumentText(letter),
+          tailored_cv: tailoredCv,
           application_email: to.trim() || undefined,
         });
         await Promise.all([
@@ -289,7 +303,7 @@ function JobDetail() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [subject, body, letter, to, appDraft?.id, hasUnsavedChanges, id, qc]);
+  }, [subject, body, letter, tailoredCv, to, appDraft?.id, hasUnsavedChanges, id, qc]);
 
   const maybeShowReferralPrompt = useCallback(
     (precheck: UsageLimitStatus | null | undefined, actionLabel: string) => {
@@ -304,6 +318,18 @@ function JobDetail() {
     [],
   );
 
+  const tailorCvMut = useMutation({
+    mutationFn: () => generateTailoredCv({ jobId: id }),
+    onSuccess: (r) => {
+      setTailoredCv(r.tailored_cv ?? "");
+      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["saved-jobs"] });
+      qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
+    },
+    onError: (e: Error) => toast.error(`CV Tailoring failed: ${e.message}`),
+  });
+
   const genMut = useMutation({
     mutationFn: (_precheck?: UsageLimitStatus) => generateAndSaveLetter({ jobId: id }),
     onSuccess: (r, precheck) => {
@@ -313,9 +339,14 @@ function JobDetail() {
       setSubject(r.application.email_subject ?? "");
       setBody(r.application.email_body ?? "");
       setLetter(sanitizePlainDocumentText(r.application.cover_letter ?? ""));
+      setTailoredCv(r.application.tailored_cv ?? "");
       const email = normalizeApplyEmail(r.application.application_email);
       if (email) setTo(email);
       setTab("apply");
+      
+      // Auto-trigger CV tailoring in background
+      tailorCvMut.mutate();
+
       qc.invalidateQueries({ queryKey: ["job", id] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
@@ -335,9 +366,14 @@ function JobDetail() {
         setSubject(r.application.email_subject ?? "");
         setBody(r.application.email_body ?? "");
         setLetter(sanitizePlainDocumentText(r.application.cover_letter ?? ""));
+        setTailoredCv(r.application.tailored_cv ?? "");
         const email = normalizeApplyEmail(r.application.application_email);
         if (email) setTo(email);
       }
+
+      // Auto-trigger CV tailoring in background
+      tailorCvMut.mutate();
+
       qc.invalidateQueries({ queryKey: ["job", id] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
@@ -375,6 +411,7 @@ function JobDetail() {
         email_subject: subject,
         email_body: body,
         cover_letter: sanitizePlainDocumentText(letter),
+        tailored_cv: tailoredCv,
         application_email: to.trim() || undefined,
       });
     },
@@ -531,12 +568,14 @@ function JobDetail() {
         subject={subject}
         body={body}
         letter={letter}
+        tailoredCv={tailoredCv}
         includeCv={includeCv}
         onToChange={setTo}
         onCcChange={setCc}
         onSubjectChange={setSubject}
         onBodyChange={setBody}
         onLetterChange={setLetter}
+        onTailoredCvChange={setTailoredCv}
         onIncludeCvChange={setIncludeCv}
         onApply={async () => {
           const precheck = await guardLimit();
@@ -561,6 +600,8 @@ function JobDetail() {
         onSave={() => saveMut.mutate()}
         onSend={() => sendMut.mutate()}
         onSaveToDrive={() => driveMut.mutate()}
+        isTailoringCv={tailorCvMut.isPending}
+        onTailorCv={() => tailorCvMut.mutate()}
         applyPending={genMut.isPending}
         applyDisabled={limitReached}
         packPending={packMut.isPending}

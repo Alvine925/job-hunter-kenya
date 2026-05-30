@@ -65,11 +65,8 @@ serve(async (req) => {
     if (action === "cron-scrape-due") {
       const authHeader = req.headers.get("Authorization");
       const cronSecret = Deno.env.get("CRON_SECRET");
-      if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-        if (authHeader !== `Bearer ${anonKey}`) {
-          throw new Error("Unauthorized");
-        }
+      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+        throw new Error("Unauthorized");
       }
 
       const admin = createAdminClient();

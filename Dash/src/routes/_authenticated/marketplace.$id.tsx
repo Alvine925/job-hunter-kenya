@@ -5,6 +5,7 @@ import {
   toggleSaveJob,
   generateAndSaveLetter,
   generateApplicationPack,
+  generateTailoredCv,
   generateInterviewQuestions,
   updateApplicationDraft,
   sendApplicationEmail,
@@ -239,7 +240,7 @@ function MarketplaceJobDetail() {
       if (!user) return null;
       const { data: p } = await supabase
         .from("profiles")
-        .select("skills, full_name, email, referral_code")
+        .select("skills, full_name, email")
         .eq("id", user.id)
         .single();
       return p;
@@ -253,6 +254,7 @@ function MarketplaceJobDetail() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [letter, setLetter] = useState("");
+  const [tailoredCv, setTailoredCv] = useState("");
   const [includeCv, setIncludeCv] = useState(true);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [referralPromptOpen, setReferralPromptOpen] = useState(false);
@@ -271,17 +273,29 @@ function MarketplaceJobDetail() {
   }, [data?.job?.id, data?.job?.application_email, data?.application?.application_email]);
 
   useEffect(() => {
-    if (!data?.application) return;
-    setSubject((data.application.email_subject as string) ?? "");
-    setBody((data.application.email_body as string) ?? "");
-    setLetter(sanitizePlainDocumentText((data.application.cover_letter as string) ?? ""));
-  }, [data?.application?.id]);
+    const app = data?.application;
+    if (!app) return;
+    setSubject((prev) => prev !== (app.email_subject as string ?? "") ? (app.email_subject as string ?? "") : prev);
+    setBody((prev) => prev !== (app.email_body as string ?? "") ? (app.email_body as string ?? "") : prev);
+    setLetter((prev) => {
+      const dbVal = sanitizePlainDocumentText(app.cover_letter as string ?? "");
+      return prev !== dbVal ? dbVal : prev;
+    });
+    setTailoredCv((prev) => prev !== (app.tailored_cv as string ?? "") ? (app.tailored_cv as string ?? "") : prev);
+  }, [
+    data?.application?.id,
+    data?.application?.email_subject,
+    data?.application?.email_body,
+    data?.application?.cover_letter,
+    data?.application?.tailored_cv,
+  ]);
 
   const appDraft = data?.application;
   const hasUnsavedChanges = !!appDraft?.id && (
     subject !== ((appDraft.email_subject as string) ?? "") ||
     body !== ((appDraft.email_body as string) ?? "") ||
     sanitizePlainDocumentText(letter) !== sanitizePlainDocumentText((appDraft.cover_letter as string) ?? "") ||
+    tailoredCv !== ((appDraft.tailored_cv as string) ?? "") ||
     to !== ((appDraft.application_email as string) ?? "")
   );
 
@@ -296,6 +310,7 @@ function MarketplaceJobDetail() {
           email_subject: subject,
           email_body: body,
           cover_letter: sanitizePlainDocumentText(letter),
+          tailored_cv: tailoredCv,
           application_email: to.trim() || undefined,
         });
         await Promise.all([
@@ -312,7 +327,7 @@ function MarketplaceJobDetail() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [subject, body, letter, to, appDraft?.id, hasUnsavedChanges, scrapedJobId, qc]);
+  }, [subject, body, letter, tailoredCv, to, appDraft?.id, hasUnsavedChanges, scrapedJobId, qc]);
 
   const maybeShowReferralPrompt = useCallback(
     (precheck: UsageLimitStatus | null | undefined, actionLabel: string) => {
@@ -327,6 +342,18 @@ function MarketplaceJobDetail() {
     [],
   );
 
+  const tailorCvMut = useMutation({
+    mutationFn: () => generateTailoredCv({ jobId: jobId! }),
+    onSuccess: (r) => {
+      setTailoredCv(r.tailored_cv ?? "");
+      qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["saved-jobs"] });
+      qc.invalidateQueries({ queryKey: ["scraped_jobs"] });
+    },
+    onError: (e: Error) => toast.error(`CV Tailoring failed: ${e.message}`),
+  });
+
   const genMut = useMutation({
     mutationFn: (_precheck?: UsageLimitStatus) => generateAndSaveLetter({ jobId: jobId! }),
     onSuccess: (r, precheck) => {
@@ -334,9 +361,14 @@ function MarketplaceJobDetail() {
       setSubject(r.application.email_subject ?? "");
       setBody(r.application.email_body ?? "");
       setLetter(sanitizePlainDocumentText(r.application.cover_letter ?? ""));
+      setTailoredCv(r.application.tailored_cv ?? "");
       const email = normalizeApplyEmail(r.application.application_email);
       if (email) setTo(email);
       setTab("apply");
+
+      // Auto-trigger CV tailoring in background
+      tailorCvMut.mutate();
+
       qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
@@ -354,9 +386,14 @@ function MarketplaceJobDetail() {
         setSubject(r.application.email_subject ?? "");
         setBody(r.application.email_body ?? "");
         setLetter(sanitizePlainDocumentText(r.application.cover_letter ?? ""));
+        setTailoredCv(r.application.tailored_cv ?? "");
         const email = normalizeApplyEmail(r.application.application_email);
         if (email) setTo(email);
       }
+
+      // Auto-trigger CV tailoring in background
+      tailorCvMut.mutate();
+
       qc.invalidateQueries({ queryKey: ["marketplace-job", scrapedJobId] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["saved-jobs"] });
@@ -394,6 +431,7 @@ function MarketplaceJobDetail() {
         email_subject: subject,
         email_body: body,
         cover_letter: sanitizePlainDocumentText(letter),
+        tailored_cv: tailoredCv,
         application_email: to.trim() || undefined,
       });
     },
@@ -569,12 +607,14 @@ function MarketplaceJobDetail() {
         subject={subject}
         body={body}
         letter={letter}
+        tailoredCv={tailoredCv}
         includeCv={includeCv}
         onToChange={setTo}
         onCcChange={setCc}
         onSubjectChange={setSubject}
         onBodyChange={setBody}
         onLetterChange={setLetter}
+        onTailoredCvChange={setTailoredCv}
         onIncludeCvChange={setIncludeCv}
         onApply={async () => {
           const precheck = await guardLimit();
@@ -599,6 +639,8 @@ function MarketplaceJobDetail() {
         onSave={() => saveMut.mutate()}
         onSend={() => sendMut.mutate()}
         onSaveToDrive={() => driveMut.mutate()}
+        isTailoringCv={tailorCvMut.isPending}
+        onTailorCv={() => tailorCvMut.mutate()}
         applyPending={genMut.isPending}
         applyDisabled={limitReached}
         packPending={packMut.isPending}

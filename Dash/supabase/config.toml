@@ -61,5 +61,7 @@ verify_jwt = false
 [functions.referral-notification]
 verify_jwt = false
 
+[functions.help-contact]
+verify_jwt = false
 
 

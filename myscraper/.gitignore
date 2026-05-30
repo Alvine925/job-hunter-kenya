@@ -1,0 +1,33 @@
+# Environment files (sensitive credentials)
+.env
+.env.local
+.env.*.local
+
+# Python caches and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Scrapy / Playwright temporary logs & outputs
+.scrapy/
+*.log
+*.html
+myjobsinkenya_home.html
+myjobsinkenya_list.html
+job_detail.html
+operator.html
+
+# Local IDEs & OS files
+.vscode/
+.idea/
+.gemini/
+Thumbs.db
+ehthumbs.db
+Desktop.ini

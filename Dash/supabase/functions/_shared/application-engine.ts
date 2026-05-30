@@ -15,6 +15,7 @@ import {
   runEmailDraftAgent,
   runFormApplicationAgent,
   runInterviewPrepAgent,
+  runCvTailorAgent,
 } from "./job-agents.ts";
 import { resolveSiteFormProfile } from "./site-form-profiles/index.ts";
 import { resolveSiteEmailProfile } from "./site-email-profiles/index.ts";
@@ -285,7 +286,7 @@ async function getCvAttachment(supabase: SupabaseLike, userId: string) {
   };
 }
 
-async function upsertApplication(supabase: SupabaseLike, userId: string, jobId: string, row: Record<string, unknown>) {
+export async function upsertApplication(supabase: SupabaseLike, userId: string, jobId: string, row: Record<string, unknown>) {
   const { data: existing } = await supabase
     .from("applications")
     .select("id")
@@ -633,6 +634,7 @@ async function generateCoverLetterPdf(text: string): Promise<Uint8Array> {
     // Choose font based on whether the paragraph looks like a header/title or standard text
     const isHeader = para.length < 90 && (
       /^\d+\.\s+[A-Za-z]/.test(para) || 
+      /^(RE:|Subject:)/i.test(para.trim()) ||
       (!/^(Dear\s|Yours\s|Sincerely|Kind\s+regards|Best\s+regards)/i.test(para) && para === para.toUpperCase())
     );
     const activeFont = isHeader ? boldFont : font;
@@ -691,9 +693,26 @@ export async function sendPreparedEmailApplication(params: {
   const attachments: { filename: string; mimeType: string; data: Uint8Array }[] = [];
 
   if (includeCv) {
-    const cv = await getCvAttachment(supabase, userId);
-    if (cv) {
-      attachments.push(cv);
+    if (application.tailored_cv?.trim()) {
+      try {
+        const tailoredCvData = await generateCoverLetterPdf(application.tailored_cv);
+        attachments.push({
+          filename: `Tailored CV - ${application.job_title || "Resume"}.pdf`,
+          mimeType: "application/pdf",
+          data: tailoredCvData,
+        });
+      } catch (err) {
+        console.error("Failed to generate tailored CV PDF, falling back to original:", err);
+        const cv = await getCvAttachment(supabase, userId);
+        if (cv) {
+          attachments.push(cv);
+        }
+      }
+    } else {
+      const cv = await getCvAttachment(supabase, userId);
+      if (cv) {
+        attachments.push(cv);
+      }
     }
   }
 
@@ -815,13 +834,33 @@ export async function saveApplicationPackToDrive(params: {
     googleAccessToken,
   );
 
-  await uploadBinaryFile(
-    cv.filename,
-    cv.data,
-    cv.mimeType,
-    folder.folderId,
-    googleAccessToken,
-  );
+  if (application.tailored_cv?.trim()) {
+    try {
+      await createGoogleDocFormatted(
+        `Tailored CV - ${sanitizeDriveName(job.title)}`,
+        application.tailored_cv,
+        folder.folderId,
+        googleAccessToken,
+      );
+    } catch (e) {
+      console.error("Failed to upload tailored CV Google Doc, uploading original instead:", e);
+      await uploadBinaryFile(
+        cv.filename,
+        cv.data,
+        cv.mimeType,
+        folder.folderId,
+        googleAccessToken,
+      );
+    }
+  } else {
+    await uploadBinaryFile(
+      cv.filename,
+      cv.data,
+      cv.mimeType,
+      folder.folderId,
+      googleAccessToken,
+    );
+  }
 
   if (application.interview_questions) {
     try {

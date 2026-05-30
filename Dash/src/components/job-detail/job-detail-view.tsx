@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCvPreviewUrl } from "@/lib/api";
-import { ApplicationPreviewPanel } from "./application-preview-panel";
+import {
+  ApplicationPreviewPanel,
+  ExportButton,
+  CopyAction,
+  formatCoverLetterHtml,
+  formatEmailHtml,
+} from "./application-preview-panel";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +95,38 @@ type SimilarJob = {
   source?: string | null;
   source_url?: string | null;
 };
+
+function SubjectTextArea({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={1}
+      className={cn(
+        "bg-transparent border-none outline-none p-0 py-1 min-h-[2rem] resize-none overflow-hidden text-[13px] sm:text-[14px] text-foreground w-full min-w-0 focus:ring-0 focus:outline-none",
+        className
+      )}
+    />
+  );
+}
 
 function MatchRing({ score, size = 56 }: { score: number; size?: number }) {
   const radius = (size - 6) / 2;
@@ -236,6 +274,10 @@ export function JobDetailView({
   similarCurrentId,
   isSavingDraft = false,
   onToggleApplicationMethod,
+  tailoredCv = "",
+  onTailoredCvChange,
+  isTailoringCv = false,
+  onTailorCv,
 }: {
   job: Job;
   application: Application;
@@ -295,6 +337,10 @@ export function JobDetailView({
   saveBookmarkPending?: boolean;
   isSavingDraft?: boolean;
   onToggleApplicationMethod?: () => void;
+  tailoredCv?: string;
+  onTailoredCvChange?: (v: string) => void;
+  isTailoringCv?: boolean;
+  onTailorCv?: () => void;
 }) {
   const [localMethodOverride, setLocalMethodOverride] = useState<"email" | "form" | null>(null);
   const displayEmailApply = localMethodOverride 
@@ -322,17 +368,7 @@ export function JobDetailView({
       ? "Draft ready"
       : null;
 
-  // Mobile: force/redirect tab to "apply" and listen to window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768 && tab !== "apply") {
-        onTabChange("apply");
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [tab, onTabChange]);
+
 
   const activeApplySection = resolveApplySection(applySection);
   const activeSectionInfo = (() => {
@@ -354,7 +390,9 @@ export function JobDetailView({
     <div
       className={cn(
         "flex flex-col h-full min-h-0 overflow-hidden",
-        tab === "apply" ? "apply-compose-root" : "bg-muted/40",
+        tab === "apply"
+          ? (applyPreviewOpen ? "bg-background" : "apply-compose-root")
+          : "bg-muted/40",
       )}
     >
       {/* Desktop Header */}
@@ -523,36 +561,69 @@ export function JobDetailView({
       </div>
 
       {/* Custom Mobile Header */}
-      <div className="md:hidden flex items-center justify-between gap-2 border-b border-border/40 px-4 py-3 bg-[#F8FAFC] dark:bg-[#0B0F19] sticky top-0 z-40 w-full shrink-0">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer focus-visible:ring-0"
-            onClick={() => window.dispatchEvent(new CustomEvent("toggle-mobile-sidebar"))}
-          >
-            <Menu className="h-5 w-5 animate-none" />
-          </Button>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#FD5D28]/10 text-[#FD5D28]">
-            <ActiveIcon className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{activeSectionInfo.label}</span>
+      <div className="md:hidden flex flex-col border-b border-border/40 bg-[#F8FAFC] dark:bg-[#0B0F19] sticky top-0 z-40 w-full shrink-0">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 w-full">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer focus-visible:ring-0"
+              onClick={() => window.dispatchEvent(new CustomEvent("toggle-mobile-sidebar"))}
+            >
+              <Menu className="h-5 w-5 animate-none" />
+            </Button>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#FD5D28]/10 text-[#FD5D28]">
+              <ActiveIcon className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{activeSectionInfo.label}</span>
+            </div>
           </div>
+
+          {job.source_url ? (
+            <a
+              href={job.source_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold border border-border/60 hover:bg-muted/45 text-muted-foreground hover:text-foreground cursor-pointer transition-colors shrink-0"
+            >
+              <ExternalLink className="w-3 h-3 mr-1 shrink-0" />
+              <span>Open form</span>
+            </a>
+          ) : (
+            onToggleApplicationMethod && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLocalMethodOverride(displayEmailApply ? "form" : "email");
+                  onToggleApplicationMethod?.();
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold border border-border/60 hover:bg-muted/45 text-muted-foreground hover:text-foreground cursor-pointer transition-colors shrink-0"
+              >
+                <span>
+                  Switch to {displayEmailApply ? "Form" : "Email"}
+                </span>
+              </button>
+            )
+          )}
         </div>
 
-        {onToggleApplicationMethod && (
-          <button
-            type="button"
-            onClick={() => {
-              setLocalMethodOverride(displayEmailApply ? "form" : "email");
-              onToggleApplicationMethod?.();
-            }}
-            className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold border border-border/60 hover:bg-muted/45 text-muted-foreground hover:text-foreground cursor-pointer transition-colors shrink-0"
-          >
-            <span>
-              Switch to {displayEmailApply ? "Form" : "Email"} application
-            </span>
-          </button>
-        )}
+        {/* Tab row for mobile navigation */}
+        <div className="flex items-center gap-1 px-4 border-t border-border/10 bg-background overflow-x-auto scrollbar-none w-full">
+          {(["overview", "company", "apply"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={cn(
+                "px-3.5 pb-2 pt-2.5 text-xs font-bold border-b-2 transition-all relative select-none cursor-pointer",
+                tab === t
+                  ? "border-[#FD5D28] text-[#FD5D28]"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+              onClick={() => onTabChange(t)}
+            >
+              <span className="capitalize">{t}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div
@@ -878,33 +949,33 @@ export function JobDetailView({
           tab !== "company" && "hidden",
         )}
       >
-        <div className="max-w-4xl mx-auto p-6 sm:p-10 space-y-10">
+        <div className="max-w-4xl mx-auto p-4 sm:p-10 space-y-6 sm:space-y-10">
           {/* Header / Info Row */}
-          <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-5 items-start">
-              <div className="p-3 bg-background rounded-2xl border border-border/50 shadow-sm shrink-0">
+          <div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 items-start w-full min-w-0">
+              <div className="p-2 sm:p-3 bg-background rounded-xl sm:rounded-2xl border border-border/50 shadow-sm shrink-0">
                 <CompanyLogo company={job.company ?? "Company"} source={job.source} sourceUrl={job.source_url} logoUrl={job.logo_url} size="lg" />
               </div>
-              <div className="space-y-2">
-                <h2 className="text-3xl font-extrabold tracking-tight text-foreground">{job.company ?? "Company"}</h2>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <div className="space-y-1.5 min-w-0 flex-1">
+                <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight text-foreground break-words">{job.company ?? "Company"}</h2>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs sm:text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-primary shrink-0" />
+                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
                     {job.location ?? job.county ?? "Kenya"}
                   </span>
                   {job.category && (
                     <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
+                      <span className="w-1 h-1 rounded-full bg-border shrink-0" />
                       <span className="flex items-center gap-1.5">
-                        <Building2 className="w-4 h-4 text-primary shrink-0" />
+                        <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
                         {job.category}
                       </span>
                     </>
                   )}
                   {job.source && (
                     <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      <span className="w-1 h-1 rounded-full bg-border shrink-0" />
+                      <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                         via {job.source}
                       </span>
                     </>
@@ -918,26 +989,26 @@ export function JobDetailView({
                 href={job.source_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition shadow-sm self-start md:self-auto"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg sm:rounded-xl bg-primary text-primary-foreground font-semibold text-xs sm:text-sm hover:opacity-90 transition shadow-sm self-start md:self-auto"
               >
-                View company profile <ExternalLink className="w-4 h-4" />
+                View company profile <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
           </div>
 
           {/* Split Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-border/60">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pt-6 sm:pt-8 border-t border-border/60">
             {/* Left Column: Description & Recruitment Info */}
-            <div className="md:col-span-2 space-y-8">
+            <div className="md:col-span-2 space-y-6 sm:space-y-8">
               {/* About Employer */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-foreground">About the Employer</h3>
-                <p className="text-base leading-relaxed text-foreground/80 font-normal whitespace-pre-line">
+              <div className="space-y-3">
+                <h3 className="text-base sm:text-lg font-bold text-foreground">About the Employer</h3>
+                <p className="text-sm sm:text-base leading-relaxed text-foreground/80 font-normal whitespace-pre-line">
                   {aboutCompany}
                 </p>
 
                 {job.source_url && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground">
                     Role details and application are on the{" "}
                     <a
                       href={job.source_url}
@@ -954,20 +1025,20 @@ export function JobDetailView({
               </div>
 
               {/* Recruitment Insights */}
-              <div className="space-y-4 pt-4 border-t border-border/40">
-                <h3 className="text-lg font-bold text-foreground">Recruitment Insights</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-background border border-border/40 space-y-1 shadow-sm">
-                    <div className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">Postings Status</div>
-                    <div className="text-sm font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="space-y-3 pt-4 border-t border-border/40">
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Recruitment Insights</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 rounded-xl bg-background border border-border/40 space-y-1 shadow-sm">
+                    <div className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-muted-foreground">Postings Status</div>
+                    <div className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Active recruitment
                     </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-background border border-border/40 space-y-1 shadow-sm">
-                    <div className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">Verification</div>
-                    <div className="text-sm font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <div className="p-3 sm:p-4 rounded-xl bg-background border border-border/40 space-y-1 shadow-sm">
+                    <div className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-muted-foreground">Verification</div>
+                    <div className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                       Verified employer
                     </div>
                   </div>
@@ -1071,12 +1142,14 @@ export function JobDetailView({
           subject={subject}
           body={body}
           letter={letter}
+          tailoredCv={tailoredCv}
           includeCv={includeCv}
           onToChange={onToChange}
           onCcChange={onCcChange}
           onSubjectChange={onSubjectChange}
           onBodyChange={onBodyChange}
           onLetterChange={onLetterChange}
+          onTailoredCvChange={onTailoredCvChange}
           onIncludeCvChange={onIncludeCvChange}
           onApply={onApply}
           onPack={onPack}
@@ -1094,6 +1167,8 @@ export function JobDetailView({
           onInterviewSheetOpenChange={onInterviewSheetOpenChange}
           onSave={onSave}
           onSend={onSend}
+          isTailoringCv={isTailoringCv}
+          onTailorCv={onTailorCv}
           applyPending={applyPending}
           applyDisabled={applyDisabled}
           packPending={packPending}
@@ -1149,12 +1224,14 @@ function ApplyPanel(props: {
   subject: string;
   body: string;
   letter: string;
+  tailoredCv: string;
   includeCv: boolean;
   onToChange: (v: string) => void;
   onCcChange: (v: string) => void;
   onSubjectChange: (v: string) => void;
   onBodyChange: (v: string) => void;
   onLetterChange: (v: string) => void;
+  onTailoredCvChange?: (v: string) => void;
   onIncludeCvChange: (v: boolean) => void;
   onApply: () => void;
   onPack: () => void;
@@ -1182,6 +1259,8 @@ function ApplyPanel(props: {
   userFirstName?: string | null;
   isSavingDraft?: boolean;
   onToggleApplicationMethod?: () => void;
+  isTailoringCv?: boolean;
+  onTailorCv?: () => void;
 }) {
   const {
     job,
@@ -1203,12 +1282,14 @@ function ApplyPanel(props: {
     subject,
     body,
     letter,
+    tailoredCv,
     includeCv,
     onToChange,
     onCcChange,
     onSubjectChange,
     onBodyChange,
     onLetterChange,
+    onTailoredCvChange,
     onIncludeCvChange,
     onApply,
     onPack,
@@ -1229,7 +1310,29 @@ function ApplyPanel(props: {
     saveToDrivePending = false,
     isSavingDraft = false,
     onToggleApplicationMethod,
+    isTailoringCv = false,
+    onTailorCv,
   } = props;
+
+  const [headersCollapsed, setHeadersCollapsed] = useState(false);
+  const editPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+      const isInsidePanel = editPanelRef.current?.contains(target);
+      if (!isInsidePanel && target !== editPanelRef.current) return;
+
+      const isScrolled = target.scrollTop > 45;
+      setHeadersCollapsed((prev) => (prev !== isScrolled ? isScrolled : prev));
+    };
+
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll, { capture: true });
+    };
+  }, []);
 
   const previewOpen = applyPreviewOpen;
   const setPreviewOpen = (open: boolean) => onApplyPreviewOpenChange?.(open);
@@ -1400,6 +1503,7 @@ function ApplyPanel(props: {
       )}
 
       <div
+        ref={editPanelRef}
         className={cn(
           "flex-1 min-h-0",
           previewOpen
@@ -1411,16 +1515,46 @@ function ApplyPanel(props: {
       >
         <div
           className={cn(
-            "max-w-7xl mx-auto w-full px-4 sm:px-8 h-full flex flex-col",
-            previewOpen && "flex-1 min-h-0 overflow-hidden",
+            "w-full h-full flex flex-col min-w-0 overflow-hidden",
+            previewOpen
+              ? "px-0 sm:px-8 w-full flex-1 min-h-0 sm:overflow-hidden"
+              : "max-w-7xl mx-auto px-3 sm:px-8",
             !singlePanel && isEmailApply && "lg:flex-1 lg:min-h-0 lg:overflow-hidden"
           )}
         >
-          {isEmailApply ? (
+          {previewOpen ? (
+            <ApplicationPreviewPanel
+              className="mt-0 sm:mt-2 flex-1 min-h-0"
+              onClose={() => setPreviewOpen(false)}
+              to={to}
+              subject={subject}
+              body={body}
+              letter={letter}
+              tailoredCv={tailoredCv}
+              onTailoredCvChange={onTailoredCvChange}
+              isTailoringCv={isTailoringCv}
+              onTailorCv={onTailorCv}
+              includeCv={includeCv}
+              cvUrl={cvPreview?.url ?? null}
+              cvFileName={cvPreview?.fileName ?? null}
+              cvLoading={cvLoading}
+              coverLetterDocUrl={docUrl}
+              sent={app?.status === "sent"}
+              canSendAutomatically={canSendAutomatically}
+              applicationUrl={job.application_url}
+              onSend={onSend}
+              onSave={onSave}
+              onSaveToDrive={onSaveToDrive}
+              sendPending={sendPending}
+              savePending={savePending}
+              saveToDrivePending={saveToDrivePending}
+              packSavedToDrive={packSavedToDrive}
+              driveFolderUrl={savedFolderUrl}
+            />
+          ) : isEmailApply ? (
             <div
               className={cn(
                 "flex flex-col",
-                previewOpen && "flex-1 min-h-0",
                 !singlePanel && "lg:flex-1 lg:min-h-0 lg:overflow-hidden"
               )}
             >
@@ -1430,7 +1564,15 @@ function ApplyPanel(props: {
                 </div>
                 {emailDraftReady && !applyPending && (
                   <div className="flex items-center gap-1.5 shrink-0">
-
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs px-2.5"
+                      onClick={() => setPreviewOpen(true)}
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5" />
+                      Preview & CV
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1507,7 +1649,6 @@ function ApplyPanel(props: {
                 <div
                   className={cn(
                     "relative flex flex-col",
-                    previewOpen && "flex-1 min-h-0",
                     !singlePanel && "lg:flex-1 lg:min-h-0 lg:overflow-hidden"
                   )}
                 >
@@ -1516,36 +1657,9 @@ function ApplyPanel(props: {
                       label={saveToDrivePending ? "Saving to Google Drive…" : "Sending email…"}
                     />
                   )}
-                  {previewOpen ? (
-                    <ApplicationPreviewPanel
-                      className="mt-2 flex-1 min-h-0"
-                      onClose={() => setPreviewOpen(false)}
-                      to={to}
-                      subject={subject}
-                      body={body}
-                      letter={letter}
-                      includeCv={includeCv}
-                      cvUrl={cvPreview?.url ?? null}
-                      cvFileName={cvPreview?.fileName ?? null}
-                      cvLoading={cvLoading}
-                      coverLetterDocUrl={docUrl}
-                      sent={app?.status === "sent"}
-                      canSendAutomatically={canSendAutomatically}
-                      applicationUrl={job.application_url}
-                      onSend={onSend}
-                      onSave={onSave}
-                      onSaveToDrive={onSaveToDrive}
-                      sendPending={sendPending}
-                      savePending={savePending}
-                      saveToDrivePending={saveToDrivePending}
-                      packSavedToDrive={packSavedToDrive}
-                      driveFolderUrl={savedFolderUrl}
-                    />
-                  ) : (
-                    <>
-                      {emailDraftReady && !canSendAutomatically && (
-                        <ManualApplyNotice driveFolderUrl={savedFolderUrl} />
-                      )}
+                  {emailDraftReady && !canSendAutomatically && (
+                    <ManualApplyNotice driveFolderUrl={savedFolderUrl} />
+                  )}
 
                       {emailDraftReady && onApplyViewChange && (
                         <div className="shrink-0 flex items-center justify-center py-2.5 border-b border-border/50 w-full hidden lg:flex">
@@ -1613,7 +1727,7 @@ function ApplyPanel(props: {
                         )}
                       >
                         {!isLargeScreen ? (
-                          <div className="w-full flex flex-col gap-4">
+                          <div className="w-full flex flex-col gap-4 min-w-0">
                             {/* Email Accordion Card */}
                             <div className="overflow-hidden">
                               <div
@@ -1653,44 +1767,63 @@ function ApplyPanel(props: {
 
                               {mobileExpanded === "email" && (
                                 <div className="pt-3 space-y-4">
-                                  <div className="space-y-1">
-                                    <div className="grid grid-cols-[60px_1fr] gap-3 items-center py-1 border-b border-border/30">
-                                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">To</Label>
+                                  <div className={cn(
+                                    "space-y-1 min-w-0 transition-all duration-300 ease-in-out origin-top",
+                                    headersCollapsed
+                                      ? "max-h-0 opacity-0 overflow-hidden pb-0 pt-0 pointer-events-none"
+                                      : "max-h-[500px] opacity-100 pb-3"
+                                  )}>
+                                    <div className="grid grid-cols-[48px_1fr] sm:grid-cols-[60px_1fr] gap-2 sm:gap-3 items-center py-1 border-b border-border/30 min-w-0">
+                                      <Label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">To</Label>
                                       <input
                                         type="email"
                                         placeholder="recruiter@company.co.ke"
                                         value={to === "null" ? "" : to}
                                         onChange={(e) => onToChange(e.target.value)}
-                                        className="bg-transparent border-none outline-none p-0 h-8 text-[14px] text-foreground placeholder:text-muted-foreground/50 w-full focus:ring-0 focus:outline-none"
+                                        className="bg-transparent border-none outline-none p-0 h-8 text-[13px] sm:text-[14px] text-foreground placeholder:text-muted-foreground/50 w-full min-w-0 focus:ring-0 focus:outline-none"
                                       />
                                     </div>
                                     {!listingEmail && !normalizeApplyEmail(to) && (
-                                      <p className="text-[10px] text-muted-foreground pl-16 mt-1">
+                                      <p className="text-[10px] text-muted-foreground pl-[56px] sm:pl-16 mt-1">
                                         Paste the apply-to address from the job listing.
                                       </p>
                                     )}
-                                    <div className="grid grid-cols-[60px_1fr] gap-3 items-center py-1 border-b border-border/30">
-                                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Cc</Label>
+                                    <div className="grid grid-cols-[48px_1fr] sm:grid-cols-[60px_1fr] gap-2 sm:gap-3 items-center py-1 border-b border-border/30 min-w-0">
+                                      <Label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Cc</Label>
                                       <input
                                         type="text"
                                         placeholder="Optional"
                                         value={cc}
                                         onChange={(e) => onCcChange(e.target.value)}
-                                        className="bg-transparent border-none outline-none p-0 h-8 text-[14px] text-foreground placeholder:text-muted-foreground/50 w-full focus:ring-0 focus:outline-none"
+                                        className="bg-transparent border-none outline-none p-0 h-8 text-[13px] sm:text-[14px] text-foreground placeholder:text-muted-foreground/50 w-full min-w-0 focus:ring-0 focus:outline-none"
                                       />
                                     </div>
-                                    <div className="grid grid-cols-[60px_1fr] gap-3 items-center py-1 border-b border-border/30">
-                                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Subject</Label>
-                                      <input
-                                        type="text"
+                                    <div className="flex flex-col sm:grid sm:grid-cols-[60px_1fr] gap-1 sm:gap-3 py-1.5 sm:py-1 border-b border-border/30 min-w-0">
+                                      <Label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1 shrink-0">Subject</Label>
+                                      <SubjectTextArea
                                         value={subject}
-                                        onChange={(e) => onSubjectChange(e.target.value)}
-                                        className="bg-transparent border-none outline-none p-0 h-8 text-[14px] text-foreground w-full focus:ring-0 focus:outline-none"
+                                        onChange={onSubjectChange}
                                       />
                                     </div>
                                   </div>
                                   <div className="flex flex-col">
-                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 pl-1">Message</Label>
+                                    <div className="flex items-center justify-between pl-1 pr-1 mb-2">
+                                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Message</Label>
+                                      {body && (
+                                        <div className="flex items-center gap-2.5">
+                                          <CopyAction label="Email" text={`Subject: ${subject}\n\n${body}`} />
+                                          <span className="w-px h-3 bg-border/60" />
+                                          <ExportButton
+                                            title={`Email - ${app?.cv_filename ? app.cv_filename.replace(/\.[^/.]+$/, "") : "Application"}`}
+                                            htmlContent={() => formatEmailHtml(subject, body)}
+                                            rawText={body}
+                                            subject={subject}
+                                            docType="email"
+                                            disabled={!body}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
                                     <div className="max-h-[45vh] overflow-y-auto">
                                       <ApplyComposeField value={body} onChange={onBodyChange} minHeightPx={180} />
                                     </div>
@@ -1743,18 +1876,37 @@ function ApplyPanel(props: {
 
                               {mobileExpanded === "letter" && (
                                 <div className="pt-3 space-y-3">
-                                  {docUrl && (
-                                    <div className="flex justify-end shrink-0">
-                                      <a
-                                        href={docUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-xs text-primary hover:underline flex items-center gap-1"
-                                      >
-                                        <ExternalLink className="w-3.5 h-3.5" /> Open in Google Docs
-                                      </a>
+                                  <div className="flex items-center justify-between pl-1 pr-1 mb-1">
+                                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Draft</span>
+                                    <div className="flex items-center gap-2.5">
+                                      {letter && (
+                                        <>
+                                          <CopyAction label="Cover letter" text={letter} />
+                                          <span className="w-px h-3 bg-border/60" />
+                                          <ExportButton
+                                            title={`Cover Letter - ${app?.cv_filename ? app.cv_filename.replace(/\.[^/.]+$/, "") : "Application"}`}
+                                            htmlContent={() => formatCoverLetterHtml(letter)}
+                                            rawText={letter}
+                                            docType="letter"
+                                            disabled={!letter}
+                                          />
+                                        </>
+                                      )}
+                                      {docUrl && (
+                                        <>
+                                          {letter && <span className="w-px h-3 bg-border/60" />}
+                                          <a
+                                            href={docUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0"
+                                          >
+                                            <ExternalLink className="w-3.5 h-3.5" /> Open Docs
+                                          </a>
+                                        </>
+                                      )}
                                     </div>
-                                  )}
+                                  </div>
                                   <div className="max-h-[45vh] overflow-y-auto">
                                     <ApplyComposeField
                                       value={letter}
@@ -1802,64 +1954,84 @@ function ApplyPanel(props: {
                                       </Badge>
                                     )}
                                   </div>
-                                  {applyView === "both" && onApplyViewChange && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 text-xs gap-1 text-muted-foreground"
-                                      onClick={() => setView("letter")}
-                                    >
-                                      <ChevronLeft className="w-3.5 h-3.5" />
-                                      Hide
-                                    </Button>
-                                  )}
-                                  {applyView === "email" && onApplyViewChange && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 text-xs gap-1"
-                                      onClick={() => setView("both")}
-                                    >
-                                      <Columns2 className="w-3.5 h-3.5" />
-                                      Show both
-                                    </Button>
-                                  )}
+                                  <div className="flex items-center gap-2.5">
+                                    {body && (
+                                      <>
+                                        <CopyAction label="Email" text={`Subject: ${subject}\n\n${body}`} />
+                                        <span className="w-px h-3 bg-border/60" />
+                                        <ExportButton
+                                          title={`Email - ${app?.cv_filename ? app.cv_filename.replace(/\.[^/.]+$/, "") : "Application"}`}
+                                          htmlContent={() => formatEmailHtml(subject, body)}
+                                          rawText={body}
+                                          subject={subject}
+                                          docType="email"
+                                          disabled={!body}
+                                        />
+                                        {onApplyViewChange && <span className="w-px h-3 bg-border/60" />}
+                                      </>
+                                    )}
+                                    {applyView === "both" && onApplyViewChange && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-xs gap-1 text-muted-foreground"
+                                        onClick={() => setView("letter")}
+                                      >
+                                        <ChevronLeft className="w-3.5 h-3.5" />
+                                        Hide
+                                      </Button>
+                                    )}
+                                    {applyView === "email" && onApplyViewChange && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-xs gap-1"
+                                        onClick={() => setView("both")}
+                                      >
+                                        <Columns2 className="w-3.5 h-3.5" />
+                                        Show both
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="shrink-0 space-y-1 pb-3">
-                                  <div className="grid grid-cols-[60px_1fr] gap-3 items-center py-1 border-b border-border/30">
-                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">To</Label>
+                                 <div className={cn(
+                                   "shrink-0 space-y-1 min-w-0 transition-all duration-300 ease-in-out origin-top",
+                                   headersCollapsed
+                                     ? "max-h-0 opacity-0 overflow-hidden pb-0 pt-0 pointer-events-none"
+                                     : "max-h-[500px] opacity-100 pb-3"
+                                 )}>
+                                  <div className="grid grid-cols-[48px_1fr] sm:grid-cols-[60px_1fr] gap-2 sm:gap-3 items-center py-1 border-b border-border/30 min-w-0">
+                                    <Label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">To</Label>
                                     <input
                                       type="email"
                                       placeholder="recruiter@company.co.ke"
                                       value={to === "null" ? "" : to}
                                       onChange={(e) => onToChange(e.target.value)}
-                                      className="bg-transparent border-none outline-none p-0 h-8 text-[14px] text-foreground placeholder:text-muted-foreground/50 w-full focus:ring-0 focus:outline-none"
+                                      className="bg-transparent border-none outline-none p-0 h-8 text-[13px] sm:text-[14px] text-foreground placeholder:text-muted-foreground/50 w-full min-w-0 focus:ring-0 focus:outline-none"
                                     />
                                   </div>
                                   {!listingEmail && !normalizeApplyEmail(to) && (
-                                    <p className="text-[10px] text-muted-foreground pl-16 mt-1">
+                                    <p className="text-[10px] text-muted-foreground pl-[56px] sm:pl-16 mt-1">
                                       Paste the apply-to address from the job listing.
                                     </p>
                                   )}
-                                  <div className="grid grid-cols-[60px_1fr] gap-3 items-center py-1 border-b border-border/30">
-                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Cc</Label>
+                                  <div className="grid grid-cols-[48px_1fr] sm:grid-cols-[60px_1fr] gap-2 sm:gap-3 items-center py-1 border-b border-border/30 min-w-0">
+                                    <Label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Cc</Label>
                                     <input
                                       type="text"
                                       placeholder="Optional"
                                       value={cc}
                                       onChange={(e) => onCcChange(e.target.value)}
-                                      className="bg-transparent border-none outline-none p-0 h-8 text-[14px] text-foreground placeholder:text-muted-foreground/50 w-full focus:ring-0 focus:outline-none"
+                                      className="bg-transparent border-none outline-none p-0 h-8 text-[13px] sm:text-[14px] text-foreground placeholder:text-muted-foreground/50 w-full min-w-0 focus:ring-0 focus:outline-none"
                                     />
                                   </div>
-                                  <div className="grid grid-cols-[60px_1fr] gap-3 items-center py-1 border-b border-border/30">
-                                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Subject</Label>
-                                    <input
-                                      type="text"
+                                  <div className="flex flex-col sm:grid sm:grid-cols-[60px_1fr] gap-1 sm:gap-3 py-1.5 sm:py-1 border-b border-border/30 min-w-0">
+                                    <Label className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1 shrink-0">Subject</Label>
+                                    <SubjectTextArea
                                       value={subject}
-                                      onChange={(e) => onSubjectChange(e.target.value)}
-                                      className="bg-transparent border-none outline-none p-0 h-8 text-[14px] text-foreground w-full focus:ring-0 focus:outline-none"
+                                      onChange={onSubjectChange}
                                     />
                                   </div>
                                 </div>
@@ -1905,7 +2077,21 @@ function ApplyPanel(props: {
                                       </Badge>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2.5">
+                                    {letter && (
+                                      <>
+                                        <CopyAction label="Cover letter" text={letter} />
+                                        <span className="w-px h-3 bg-border/60" />
+                                        <ExportButton
+                                          title={`Cover Letter - ${app?.cv_filename ? app.cv_filename.replace(/\.[^/.]+$/, "") : "Application"}`}
+                                          htmlContent={() => formatCoverLetterHtml(letter)}
+                                          rawText={letter}
+                                          docType="letter"
+                                          disabled={!letter}
+                                        />
+                                        <span className="w-px h-3 bg-border/60" />
+                                      </>
+                                    )}
                                     {docUrl && (
                                       <a
                                         href={docUrl}
@@ -1916,6 +2102,7 @@ function ApplyPanel(props: {
                                         Google Docs
                                       </a>
                                     )}
+                                    {docUrl && onApplyViewChange && <span className="w-px h-3 bg-border/60" />}
                                     {applyView === "both" && onApplyViewChange && (
                                       <Button
                                         type="button"
@@ -1959,11 +2146,11 @@ function ApplyPanel(props: {
 
                       <div
                         className={cn(
-                          "shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 border-t border-border/50 bg-inherit",
+                          "shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-3 sm:py-4 border-t border-border/50 bg-inherit min-w-0",
                           singlePanel && "max-w-2xl mx-auto w-full",
                         )}
                       >
-                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap min-w-0">
                           <div className="flex items-center gap-2">
                             {canSendAutomatically ? (
                               <>
@@ -2017,7 +2204,18 @@ function ApplyPanel(props: {
                             ) : null}
                           </div>
                         </div>
-                        <div className="flex w-full sm:w-auto gap-2 items-center">
+                        <div className="flex w-full sm:w-auto gap-1.5 sm:gap-2 items-center flex-wrap sm:flex-nowrap">
+                          {app?.id && (
+                            <Button
+                              variant="outline"
+                              className="flex-1 sm:flex-initial justify-center text-xs sm:text-sm px-2.5 sm:px-4"
+                              onClick={() => onApplyPreviewOpenChange?.(true)}
+                              disabled={applyActionBusy}
+                            >
+                              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 shrink-0" />
+                              <span className="truncate">Preview & CV</span>
+                            </Button>
+                          )}
                           {onSaveToDrive && (
                             packSavedToDrive && savedFolderUrl ? (
                               <Button
@@ -2074,11 +2272,9 @@ function ApplyPanel(props: {
                           )}
                         </div>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
           ) : (
             <div className="space-y-6">
               <div className="pb-4 border-b">
@@ -2115,23 +2311,45 @@ function ApplyPanel(props: {
                       )}
                     </p>
                   )}
-                  <div className="flex flex-row items-center gap-2.5 w-full">
+                  <div className="flex flex-row items-center gap-2 w-full flex-nowrap overflow-x-auto scrollbar-none pb-1">
                     <Button
                       onClick={onPack}
                       disabled={packPending || packDisabled}
-                      className="flex-1 md:flex-initial h-11 rounded-xl bg-[#FD5D28] text-white hover:bg-[#e44e1b] font-semibold flex items-center justify-center text-xs sm:text-sm px-2 sm:px-4 shrink-0"
+                      className="flex-1 md:flex-initial h-11 rounded-xl bg-[#FD5D28] text-white hover:bg-[#e44e1b] font-semibold flex items-center justify-center text-[11px] sm:text-sm px-1.5 sm:px-4 shrink-0"
                     >
-                      <FileText className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                      <span className="truncate">{app?.pack_questions ? "Regenerate form pack" : "Draft form responses"}</span>
+                      <FileText className="w-3.5 h-3.5 mr-1 shrink-0" />
+                      <span className="truncate">{app?.pack_questions ? "Regenerate" : "Draft responses"}</span>
                     </Button>
+                    {onToggleApplicationMethod && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          onToggleApplicationMethod?.();
+                        }}
+                        className="flex-1 md:flex-initial h-11 rounded-xl border border-slate-200 dark:border-border bg-background hover:bg-slate-50 dark:hover:bg-muted/10 text-slate-800 dark:text-slate-100 font-semibold flex items-center justify-center text-[11px] sm:text-sm px-1.5 sm:px-4 shrink-0"
+                      >
+                        <Mail className="w-3.5 h-3.5 mr-1 shrink-0" />
+                        <span className="truncate">Switch to email</span>
+                      </Button>
+                    )}
+                    {app?.id && (
+                      <Button
+                        variant="outline"
+                        onClick={() => onApplyPreviewOpenChange?.(true)}
+                        className="flex-1 md:flex-initial h-11 rounded-xl border border-slate-200 dark:border-border bg-background hover:bg-slate-50 dark:hover:bg-muted/10 text-slate-800 dark:text-slate-100 font-semibold flex items-center justify-center text-[11px] sm:text-sm px-1.5 sm:px-4 shrink-0"
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1 shrink-0" />
+                        <span className="truncate">Preview & CV</span>
+                      </Button>
+                    )}
                     {job.source_url && (
-                      <a href={job.source_url} target="_blank" rel="noreferrer" className="flex-1 md:flex-initial">
+                      <a href={job.source_url} target="_blank" rel="noreferrer" className="hidden md:block flex-1 md:flex-initial shrink-0">
                         <Button
                           variant="outline"
-                          className="w-full h-11 rounded-xl border border-slate-200 dark:border-border bg-background hover:bg-slate-50 dark:hover:bg-muted/10 text-slate-800 dark:text-slate-100 font-semibold flex items-center justify-center text-xs sm:text-sm px-2 sm:px-4"
+                          className="w-full h-11 rounded-xl border border-slate-200 dark:border-border bg-background hover:bg-slate-50 dark:hover:bg-muted/10 text-slate-800 dark:text-slate-100 font-semibold flex items-center justify-center text-[11px] sm:text-sm px-1.5 sm:px-4"
                         >
-                          <ExternalLink className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                          <span className="truncate">Open application form</span>
+                          <ExternalLink className="w-3.5 h-3.5 mr-1 shrink-0" />
+                          <span className="truncate">Open form</span>
                         </Button>
                       </a>
                     )}
@@ -2250,8 +2468,9 @@ function ApplyPanel(props: {
                         </Button>
                       </div>
                       {(subject || app?.email_subject) && (
-                        <div className="text-sm text-foreground/90 font-medium">
-                          <span className="text-muted-foreground">Subject: </span>{subject || app?.email_subject}
+                        <div className="text-sm text-foreground/90 font-medium flex flex-col sm:flex-row gap-0.5 sm:gap-1.5">
+                          <span className="text-muted-foreground shrink-0">Subject:</span>
+                          <span className="break-words">{subject || app?.email_subject}</span>
                         </div>
                       )}
                       <div className="p-4 bg-muted/30 dark:bg-muted/10 rounded-xl border border-border/50 text-sm whitespace-pre-wrap text-foreground/80 max-h-[250px] overflow-y-auto">
@@ -2369,10 +2588,10 @@ function ApplyPanel(props: {
           activeApplySection !== "matching" && "hidden",
         )}
       >
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-8">
-          <div id="job-matching-section" className="pb-10 scroll-mt-4">
+        <div className="max-w-7xl mx-auto w-full px-3 sm:px-8">
+          <div id="job-matching-section" className="pb-6 sm:pb-10 scroll-mt-4">
             <div className="mb-6">
-              <h2 className="text-lg font-semibold tracking-tight">Matching analysis</h2>
+              <h2 className="text-base sm:text-lg font-semibold tracking-tight">Matching analysis</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 How your profile aligns with {job.title}
                 {job.company ? ` at ${job.company}` : ""}.
@@ -2470,10 +2689,10 @@ function ApplyPanel(props: {
           activeApplySection !== "qualifications" && "hidden",
         )}
       >
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-8">
-          <div id="job-qualifications-section" className="pb-10 scroll-mt-4">
+        <div className="max-w-7xl mx-auto w-full px-3 sm:px-8">
+          <div id="job-qualifications-section" className="pb-6 sm:pb-10 scroll-mt-4">
             <div className="mb-6">
-              <h2 className="text-lg font-semibold tracking-tight">Job qualifications</h2>
+              <h2 className="text-base sm:text-lg font-semibold tracking-tight">Job qualifications</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Requirements and responsibilities for {job.title}
                 {job.company ? ` at ${job.company}` : ""}.

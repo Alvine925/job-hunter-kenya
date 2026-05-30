@@ -5,14 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  Bug,
-  Lightbulb,
-  Loader2,
-  MessageSquare,
-  Sparkles,
-  Star,
-} from "lucide-react";
+import { Bug, Lightbulb, Loader2, MessageSquare, Sparkles, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type FeedbackCategory = "feedback" | "suggestion" | "feature" | "bug";
@@ -96,6 +89,24 @@ export function FeedbackForm({ userId, onSubmitted }: Props) {
         message: message.trim(),
       });
       if (error) throw error;
+
+      const ratingText = rating ? `${rating}/5 (${RATING_LABELS[rating]})` : "No rating";
+      const { error: emailError } = await supabase.functions.invoke("help-contact", {
+        body: {
+          subject: `Feedback: ${CATEGORIES.find((cat) => cat.type === category)?.label ?? category}`,
+          message: [`Category: ${category}`, `Rating: ${ratingText}`, "", message.trim()].join(
+            "\n",
+          ),
+        },
+      });
+
+      if (emailError) {
+        console.warn("Feedback email notification failed:", emailError);
+      } else {
+        toast.success("Feedback email sent", {
+          description: "Your feedback was emailed to hello@tellusjobs.site.",
+        });
+      }
 
       toast.success("Feedback submitted", {
         description: "Thank you — your input helps us improve Tellus.",
@@ -189,10 +200,15 @@ export function FeedbackForm({ userId, onSubmitted }: Props) {
 
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="feedback-message" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Label
+            htmlFor="feedback-message"
+            className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+          >
             Message
           </Label>
-          <span className="text-[10px] text-muted-foreground tabular-nums">{message.length}/500</span>
+          <span className="text-[10px] text-muted-foreground tabular-nums">
+            {message.length}/500
+          </span>
         </div>
         <Textarea
           id="feedback-message"
@@ -212,7 +228,9 @@ export function FeedbackForm({ userId, onSubmitted }: Props) {
           className="resize-y min-h-[140px] text-sm border-border/80"
         />
         {showValidationError && (
-          <p className="text-xs text-destructive font-medium">Please enter a message before submitting.</p>
+          <p className="text-xs text-destructive font-medium">
+            Please enter a message before submitting.
+          </p>
         )}
       </section>
 
@@ -226,7 +244,11 @@ export function FeedbackForm({ userId, onSubmitted }: Props) {
         >
           Clear
         </Button>
-        <Button type="submit" disabled={isSubmitting} className="h-10 sm:h-9 font-semibold shadow-sm">
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="h-10 sm:h-9 font-semibold shadow-sm"
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

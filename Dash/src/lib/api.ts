@@ -138,6 +138,21 @@ async function invokePublicFunction<T = unknown>(functionName: string, body: Rec
   return data as T;
 }
 
+function handleSessionExpired() {
+  if (typeof window !== "undefined") {
+    console.warn("[auth] Session expired. Clearing cache and redirecting to login.");
+    // Clear Supabase session from localStorage
+    supabase.auth.signOut().catch((err) => console.error("[auth] signOut failed on expired session:", err));
+    // Clear local auth cache
+    resetAuthReady();
+    // Redirect to login page
+    const currentPath = window.location.pathname + window.location.search;
+    if (window.location.pathname !== "/login") {
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+    }
+  }
+}
+
 async function ensureSession() {
   // Fast path
   const {
@@ -164,6 +179,7 @@ async function ensureSession() {
   } else {
     // Quietly fail early if there's no session at all, avoiding spamming console with
     // refreshSession/getUser errors when the user is simply logged out.
+    handleSessionExpired();
     throw new Error("Your session expired. Please sign in again.");
   }
 
@@ -208,6 +224,7 @@ async function ensureSession() {
     console.error("[auth] waitForAuthSession failed:", e);
   }
 
+  handleSessionExpired();
   throw new Error("Your session expired. Please sign in again.");
 }
 
@@ -667,6 +684,13 @@ export async function generateInterviewQuestions(args: { jobId: string; data?: {
   });
 }
 
+export async function generateTailoredCv(args: { jobId: string; data?: { jobId: string } }) {
+  const payload = args.data ?? args;
+  return invokeFunction<{ tailored_cv: string }>("tailor-cv", {
+    jobId: payload.jobId,
+  });
+}
+
 export async function generateApplicationPack(args: { jobId: string; data?: { jobId: string } }) {
   const payload = args.data ?? args;
   const token = await getGoogleToken();
@@ -682,12 +706,14 @@ export async function updateApplicationDraft(args: {
   email_subject?: string;
   email_body?: string;
   cover_letter?: string;
+  tailored_cv?: string;
   application_email?: string;
   data?: {
     applicationId: string;
     email_subject?: string;
     email_body?: string;
     cover_letter?: string;
+    tailored_cv?: string;
     application_email?: string;
   };
 }) {
@@ -825,6 +851,26 @@ export async function saveCvAndExtract(args: {
   return invokeFunction<{ profile: Record<string, unknown>; extracted: CvExtracted }>(
     "profile",
     { action: "parse-cv", ...payload }
+  );
+}
+
+export interface AtsAnalysisResult {
+  score: number;
+  matched: string[];
+  missing: string[];
+  checks: { name: string; status: "pass" | "warning" | "fail"; desc: string }[];
+  recommendations: { section: string; current: string; suggestion: string }[];
+  summary: string;
+}
+
+export async function analyzeAts(cvText: string, jdText: string) {
+  return invokeFunction<{ analysis: AtsAnalysisResult }>(
+    "profile",
+    {
+      action: "ats-analyze",
+      cv_text: cvText,
+      jd_text: jdText,
+    }
   );
 }
 

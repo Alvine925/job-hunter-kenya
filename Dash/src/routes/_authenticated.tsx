@@ -9,6 +9,7 @@ import {
   getCachedSession,
   hasPassedOnboarding,
   setPassedOnboarding,
+  waitForAuthSession,
 } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -17,12 +18,25 @@ export const Route = createFileRoute("/_authenticated")({
   // Instead, return undefined synchronously on cache hit (instant navigation),
   // and only return a Promise when we actually need to do async work (first load).
   beforeLoad: ({ location }) => {
+    const path = location.pathname;
+    const isPublicMarketplace = path === "/marketplace" || path === "/marketplace/";
+    const fullPath = isBrowser()
+      ? location.pathname + window.location.search
+      : location.pathname;
+
     if (!isBrowser()) {
       return checkServerSession().then(({ hasSession }) => {
-        if (!hasSession) {
-          throw redirect({ to: "/login" });
+        if (!hasSession && !isPublicMarketplace) {
+          throw redirect({
+            to: "/login",
+            search: { redirect: fullPath },
+          });
         }
       });
+    }
+
+    if (isPublicMarketplace) {
+      return; // ← synchronous return, allow public access!
     }
 
     // Fast path: if session is cached and onboarding already passed, return
@@ -37,10 +51,13 @@ export const Route = createFileRoute("/_authenticated")({
     // This only runs once — after it completes, all subsequent navigations
     // hit the fast path above.
     return (async () => {
-      const user = session?.user || await requireSessionUser();
-      if (!user) return;
-
-      const path = location.pathname;
+      const user = session?.user || (await waitForAuthSession())?.user;
+      if (!user) {
+        throw redirect({
+          to: "/login",
+          search: { redirect: fullPath },
+        });
+      }
 
       // Allow access to onboarding and profile paths to let users fill out details
       if (path.startsWith("/onboarding") || path.startsWith("/profile") || path.startsWith("/integrations")) {

@@ -1,0 +1,16 @@
+# Core scraping
+scrapy>=2.11
+w3lib>=2.2
+itemloaders>=1.3
+itemadapter>=0.9
+
+# Supabase integration
+supabase>=2.8.0
+python-dotenv>=1.0.1
+
+# Scheduler
+apscheduler>=3.10
+
+# JavaScript rendering (needed for Fuzu + Google Jobs spiders)
+scrapy-playwright>=0.0.40
+playwright>=1.46

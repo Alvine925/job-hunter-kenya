@@ -59,6 +59,13 @@ function FeedbackPage() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl">
             Report bugs, request features, or share ideas. We read every submission.
           </p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-xl">
+            For urgent support, email{" "}
+            <a href="mailto:hello@tellusjobs.site" className="font-semibold text-[#FD5D28] hover:underline">
+              hello@tellusjobs.site
+            </a>
+            .
+          </p>
         </div>
       </header>
 

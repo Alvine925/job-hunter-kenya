@@ -25,8 +25,18 @@ export function ApplyComposeField({
     if (fill) return;
     const el = ref.current;
     if (!el) return;
-    el.style.height = "0px";
-    el.style.height = `${Math.max(el.scrollHeight, minHeightPx)}px`;
+
+    const resize = () => {
+      el.style.height = "0px";
+      el.style.height = `${Math.max(el.scrollHeight, minHeightPx)}px`;
+    };
+
+    resize();
+
+    // Use ResizeObserver to auto-resize when visibility changes (e.g. active tab toggle)
+    const observer = new ResizeObserver(resize);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [value, minHeightPx, fill]);
 
   return (
@@ -37,7 +47,7 @@ export function ApplyComposeField({
       rows={fill ? undefined : 1}
       className={cn(
         "apply-compose-field block w-full p-0 m-0",
-        "text-[15px] leading-relaxed text-foreground",
+        "text-sm sm:text-[15px] leading-relaxed text-foreground",
         serif && "font-[family-name:var(--font-serif,Georgia,serif)]",
         fill
           ? "h-full min-h-0 resize-none overflow-y-auto"

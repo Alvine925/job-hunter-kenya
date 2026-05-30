@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
@@ -27,11 +28,25 @@ import { Route as AuthenticatedFindJobsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedErrorReportRouteImport } from './routes/_authenticated/error-report'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCosRouteImport } from './routes/_authenticated/cos'
 import { Route as AuthenticatedConfigurationRouteImport } from './routes/_authenticated/configuration'
 import { Route as AuthenticatedApplicationsRouteImport } from './routes/_authenticated/applications'
 import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_authenticated/marketplace/index'
 import { Route as AuthenticatedMarketplaceIdRouteImport } from './routes/_authenticated/marketplace.$id'
 import { Route as AuthenticatedJobsIdRouteImport } from './routes/_authenticated/jobs.$id'
+import { Route as AuthenticatedCosSkillsHubRouteImport } from './routes/_authenticated/cos/skills-hub'
+import { Route as AuthenticatedCosSalaryRouteImport } from './routes/_authenticated/cos/salary'
+import { Route as AuthenticatedCosPredictRouteImport } from './routes/_authenticated/cos/predict'
+import { Route as AuthenticatedCosPipelineRouteImport } from './routes/_authenticated/cos/pipeline'
+import { Route as AuthenticatedCosLearningRouteImport } from './routes/_authenticated/cos/learning'
+import { Route as AuthenticatedCosFollowUpsRouteImport } from './routes/_authenticated/cos/follow-ups'
+import { Route as AuthenticatedCosEmployersRouteImport } from './routes/_authenticated/cos/employers'
+import { Route as AuthenticatedCosCvVersionsRouteImport } from './routes/_authenticated/cos/cv-versions'
+import { Route as AuthenticatedCosCareerPathRouteImport } from './routes/_authenticated/cos/career-path'
+import { Route as AuthenticatedCosAtsScoreRouteImport } from './routes/_authenticated/cos/ats-score'
+import { Route as AuthenticatedCosAnalyticsRouteImport } from './routes/_authenticated/cos/analytics'
+import { Route as AuthenticatedCosFollowUpsIndexRouteImport } from './routes/_authenticated/cos/follow-ups/index'
+import { Route as AuthenticatedCosFollowUpsIdRouteImport } from './routes/_authenticated/cos/follow-ups.$id'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -46,6 +61,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -125,6 +145,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCosRoute = AuthenticatedCosRouteImport.update({
+  id: '/cos',
+  path: '/cos',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedConfigurationRoute =
   AuthenticatedConfigurationRouteImport.update({
     id: '/configuration',
@@ -154,14 +179,92 @@ const AuthenticatedJobsIdRoute = AuthenticatedJobsIdRouteImport.update({
   path: '/jobs/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCosSkillsHubRoute =
+  AuthenticatedCosSkillsHubRouteImport.update({
+    id: '/skills-hub',
+    path: '/skills-hub',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosSalaryRoute = AuthenticatedCosSalaryRouteImport.update({
+  id: '/salary',
+  path: '/salary',
+  getParentRoute: () => AuthenticatedCosRoute,
+} as any)
+const AuthenticatedCosPredictRoute = AuthenticatedCosPredictRouteImport.update({
+  id: '/predict',
+  path: '/predict',
+  getParentRoute: () => AuthenticatedCosRoute,
+} as any)
+const AuthenticatedCosPipelineRoute =
+  AuthenticatedCosPipelineRouteImport.update({
+    id: '/pipeline',
+    path: '/pipeline',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosLearningRoute =
+  AuthenticatedCosLearningRouteImport.update({
+    id: '/learning',
+    path: '/learning',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosFollowUpsRoute =
+  AuthenticatedCosFollowUpsRouteImport.update({
+    id: '/follow-ups',
+    path: '/follow-ups',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosEmployersRoute =
+  AuthenticatedCosEmployersRouteImport.update({
+    id: '/employers',
+    path: '/employers',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosCvVersionsRoute =
+  AuthenticatedCosCvVersionsRouteImport.update({
+    id: '/cv-versions',
+    path: '/cv-versions',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosCareerPathRoute =
+  AuthenticatedCosCareerPathRouteImport.update({
+    id: '/career-path',
+    path: '/career-path',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosAtsScoreRoute =
+  AuthenticatedCosAtsScoreRouteImport.update({
+    id: '/ats-score',
+    path: '/ats-score',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosAnalyticsRoute =
+  AuthenticatedCosAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedCosRoute,
+  } as any)
+const AuthenticatedCosFollowUpsIndexRoute =
+  AuthenticatedCosFollowUpsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedCosFollowUpsRoute,
+  } as any)
+const AuthenticatedCosFollowUpsIdRoute =
+  AuthenticatedCosFollowUpsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedCosFollowUpsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/applications': typeof AuthenticatedApplicationsRoute
   '/configuration': typeof AuthenticatedConfigurationRoute
+  '/cos': typeof AuthenticatedCosRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/error-report': typeof AuthenticatedErrorReportRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
@@ -175,17 +278,32 @@ export interface FileRoutesByFullPath {
   '/templates': typeof AuthenticatedTemplatesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/cos/analytics': typeof AuthenticatedCosAnalyticsRoute
+  '/cos/ats-score': typeof AuthenticatedCosAtsScoreRoute
+  '/cos/career-path': typeof AuthenticatedCosCareerPathRoute
+  '/cos/cv-versions': typeof AuthenticatedCosCvVersionsRoute
+  '/cos/employers': typeof AuthenticatedCosEmployersRoute
+  '/cos/follow-ups': typeof AuthenticatedCosFollowUpsRouteWithChildren
+  '/cos/learning': typeof AuthenticatedCosLearningRoute
+  '/cos/pipeline': typeof AuthenticatedCosPipelineRoute
+  '/cos/predict': typeof AuthenticatedCosPredictRoute
+  '/cos/salary': typeof AuthenticatedCosSalaryRoute
+  '/cos/skills-hub': typeof AuthenticatedCosSkillsHubRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
+  '/cos/follow-ups/$id': typeof AuthenticatedCosFollowUpsIdRoute
+  '/cos/follow-ups/': typeof AuthenticatedCosFollowUpsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/applications': typeof AuthenticatedApplicationsRoute
   '/configuration': typeof AuthenticatedConfigurationRoute
+  '/cos': typeof AuthenticatedCosRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/error-report': typeof AuthenticatedErrorReportRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
@@ -198,19 +316,33 @@ export interface FileRoutesByTo {
   '/templates': typeof AuthenticatedTemplatesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/cos/analytics': typeof AuthenticatedCosAnalyticsRoute
+  '/cos/ats-score': typeof AuthenticatedCosAtsScoreRoute
+  '/cos/career-path': typeof AuthenticatedCosCareerPathRoute
+  '/cos/cv-versions': typeof AuthenticatedCosCvVersionsRoute
+  '/cos/employers': typeof AuthenticatedCosEmployersRoute
+  '/cos/learning': typeof AuthenticatedCosLearningRoute
+  '/cos/pipeline': typeof AuthenticatedCosPipelineRoute
+  '/cos/predict': typeof AuthenticatedCosPredictRoute
+  '/cos/salary': typeof AuthenticatedCosSalaryRoute
+  '/cos/skills-hub': typeof AuthenticatedCosSkillsHubRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
+  '/cos/follow-ups/$id': typeof AuthenticatedCosFollowUpsIdRoute
+  '/cos/follow-ups': typeof AuthenticatedCosFollowUpsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_authenticated/applications': typeof AuthenticatedApplicationsRoute
   '/_authenticated/configuration': typeof AuthenticatedConfigurationRoute
+  '/_authenticated/cos': typeof AuthenticatedCosRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/error-report': typeof AuthenticatedErrorReportRoute
   '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
@@ -224,19 +356,34 @@ export interface FileRoutesById {
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/_authenticated/cos/analytics': typeof AuthenticatedCosAnalyticsRoute
+  '/_authenticated/cos/ats-score': typeof AuthenticatedCosAtsScoreRoute
+  '/_authenticated/cos/career-path': typeof AuthenticatedCosCareerPathRoute
+  '/_authenticated/cos/cv-versions': typeof AuthenticatedCosCvVersionsRoute
+  '/_authenticated/cos/employers': typeof AuthenticatedCosEmployersRoute
+  '/_authenticated/cos/follow-ups': typeof AuthenticatedCosFollowUpsRouteWithChildren
+  '/_authenticated/cos/learning': typeof AuthenticatedCosLearningRoute
+  '/_authenticated/cos/pipeline': typeof AuthenticatedCosPipelineRoute
+  '/_authenticated/cos/predict': typeof AuthenticatedCosPredictRoute
+  '/_authenticated/cos/salary': typeof AuthenticatedCosSalaryRoute
+  '/_authenticated/cos/skills-hub': typeof AuthenticatedCosSkillsHubRoute
   '/_authenticated/jobs/$id': typeof AuthenticatedJobsIdRoute
   '/_authenticated/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
+  '/_authenticated/cos/follow-ups/$id': typeof AuthenticatedCosFollowUpsIdRoute
+  '/_authenticated/cos/follow-ups/': typeof AuthenticatedCosFollowUpsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/help'
     | '/login'
     | '/privacy'
     | '/terms'
     | '/applications'
     | '/configuration'
+    | '/cos'
     | '/dashboard'
     | '/error-report'
     | '/feedback'
@@ -250,17 +397,32 @@ export interface FileRouteTypes {
     | '/templates'
     | '/auth/callback'
     | '/auth/reset-password'
+    | '/cos/analytics'
+    | '/cos/ats-score'
+    | '/cos/career-path'
+    | '/cos/cv-versions'
+    | '/cos/employers'
+    | '/cos/follow-ups'
+    | '/cos/learning'
+    | '/cos/pipeline'
+    | '/cos/predict'
+    | '/cos/salary'
+    | '/cos/skills-hub'
     | '/jobs/$id'
     | '/marketplace/$id'
     | '/marketplace/'
+    | '/cos/follow-ups/$id'
+    | '/cos/follow-ups/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/help'
     | '/login'
     | '/privacy'
     | '/terms'
     | '/applications'
     | '/configuration'
+    | '/cos'
     | '/dashboard'
     | '/error-report'
     | '/feedback'
@@ -273,18 +435,32 @@ export interface FileRouteTypes {
     | '/templates'
     | '/auth/callback'
     | '/auth/reset-password'
+    | '/cos/analytics'
+    | '/cos/ats-score'
+    | '/cos/career-path'
+    | '/cos/cv-versions'
+    | '/cos/employers'
+    | '/cos/learning'
+    | '/cos/pipeline'
+    | '/cos/predict'
+    | '/cos/salary'
+    | '/cos/skills-hub'
     | '/jobs/$id'
     | '/marketplace/$id'
     | '/marketplace'
+    | '/cos/follow-ups/$id'
+    | '/cos/follow-ups'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/help'
     | '/login'
     | '/privacy'
     | '/terms'
     | '/_authenticated/applications'
     | '/_authenticated/configuration'
+    | '/_authenticated/cos'
     | '/_authenticated/dashboard'
     | '/_authenticated/error-report'
     | '/_authenticated/feedback'
@@ -298,14 +474,28 @@ export interface FileRouteTypes {
     | '/_authenticated/templates'
     | '/auth/callback'
     | '/auth/reset-password'
+    | '/_authenticated/cos/analytics'
+    | '/_authenticated/cos/ats-score'
+    | '/_authenticated/cos/career-path'
+    | '/_authenticated/cos/cv-versions'
+    | '/_authenticated/cos/employers'
+    | '/_authenticated/cos/follow-ups'
+    | '/_authenticated/cos/learning'
+    | '/_authenticated/cos/pipeline'
+    | '/_authenticated/cos/predict'
+    | '/_authenticated/cos/salary'
+    | '/_authenticated/cos/skills-hub'
     | '/_authenticated/jobs/$id'
     | '/_authenticated/marketplace/$id'
     | '/_authenticated/marketplace/'
+    | '/_authenticated/cos/follow-ups/$id'
+    | '/_authenticated/cos/follow-ups/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  HelpRoute: typeof HelpRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
@@ -334,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -441,6 +638,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/cos': {
+      id: '/_authenticated/cos'
+      path: '/cos'
+      fullPath: '/cos'
+      preLoaderRoute: typeof AuthenticatedCosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/configuration': {
       id: '/_authenticated/configuration'
       path: '/configuration'
@@ -476,8 +680,146 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJobsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/cos/skills-hub': {
+      id: '/_authenticated/cos/skills-hub'
+      path: '/skills-hub'
+      fullPath: '/cos/skills-hub'
+      preLoaderRoute: typeof AuthenticatedCosSkillsHubRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/salary': {
+      id: '/_authenticated/cos/salary'
+      path: '/salary'
+      fullPath: '/cos/salary'
+      preLoaderRoute: typeof AuthenticatedCosSalaryRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/predict': {
+      id: '/_authenticated/cos/predict'
+      path: '/predict'
+      fullPath: '/cos/predict'
+      preLoaderRoute: typeof AuthenticatedCosPredictRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/pipeline': {
+      id: '/_authenticated/cos/pipeline'
+      path: '/pipeline'
+      fullPath: '/cos/pipeline'
+      preLoaderRoute: typeof AuthenticatedCosPipelineRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/learning': {
+      id: '/_authenticated/cos/learning'
+      path: '/learning'
+      fullPath: '/cos/learning'
+      preLoaderRoute: typeof AuthenticatedCosLearningRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/follow-ups': {
+      id: '/_authenticated/cos/follow-ups'
+      path: '/follow-ups'
+      fullPath: '/cos/follow-ups'
+      preLoaderRoute: typeof AuthenticatedCosFollowUpsRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/employers': {
+      id: '/_authenticated/cos/employers'
+      path: '/employers'
+      fullPath: '/cos/employers'
+      preLoaderRoute: typeof AuthenticatedCosEmployersRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/cv-versions': {
+      id: '/_authenticated/cos/cv-versions'
+      path: '/cv-versions'
+      fullPath: '/cos/cv-versions'
+      preLoaderRoute: typeof AuthenticatedCosCvVersionsRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/career-path': {
+      id: '/_authenticated/cos/career-path'
+      path: '/career-path'
+      fullPath: '/cos/career-path'
+      preLoaderRoute: typeof AuthenticatedCosCareerPathRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/ats-score': {
+      id: '/_authenticated/cos/ats-score'
+      path: '/ats-score'
+      fullPath: '/cos/ats-score'
+      preLoaderRoute: typeof AuthenticatedCosAtsScoreRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/analytics': {
+      id: '/_authenticated/cos/analytics'
+      path: '/analytics'
+      fullPath: '/cos/analytics'
+      preLoaderRoute: typeof AuthenticatedCosAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedCosRoute
+    }
+    '/_authenticated/cos/follow-ups/': {
+      id: '/_authenticated/cos/follow-ups/'
+      path: '/'
+      fullPath: '/cos/follow-ups/'
+      preLoaderRoute: typeof AuthenticatedCosFollowUpsIndexRouteImport
+      parentRoute: typeof AuthenticatedCosFollowUpsRoute
+    }
+    '/_authenticated/cos/follow-ups/$id': {
+      id: '/_authenticated/cos/follow-ups/$id'
+      path: '/$id'
+      fullPath: '/cos/follow-ups/$id'
+      preLoaderRoute: typeof AuthenticatedCosFollowUpsIdRouteImport
+      parentRoute: typeof AuthenticatedCosFollowUpsRoute
+    }
   }
 }
+
+interface AuthenticatedCosFollowUpsRouteChildren {
+  AuthenticatedCosFollowUpsIdRoute: typeof AuthenticatedCosFollowUpsIdRoute
+  AuthenticatedCosFollowUpsIndexRoute: typeof AuthenticatedCosFollowUpsIndexRoute
+}
+
+const AuthenticatedCosFollowUpsRouteChildren: AuthenticatedCosFollowUpsRouteChildren =
+  {
+    AuthenticatedCosFollowUpsIdRoute: AuthenticatedCosFollowUpsIdRoute,
+    AuthenticatedCosFollowUpsIndexRoute: AuthenticatedCosFollowUpsIndexRoute,
+  }
+
+const AuthenticatedCosFollowUpsRouteWithChildren =
+  AuthenticatedCosFollowUpsRoute._addFileChildren(
+    AuthenticatedCosFollowUpsRouteChildren,
+  )
+
+interface AuthenticatedCosRouteChildren {
+  AuthenticatedCosAnalyticsRoute: typeof AuthenticatedCosAnalyticsRoute
+  AuthenticatedCosAtsScoreRoute: typeof AuthenticatedCosAtsScoreRoute
+  AuthenticatedCosCareerPathRoute: typeof AuthenticatedCosCareerPathRoute
+  AuthenticatedCosCvVersionsRoute: typeof AuthenticatedCosCvVersionsRoute
+  AuthenticatedCosEmployersRoute: typeof AuthenticatedCosEmployersRoute
+  AuthenticatedCosFollowUpsRoute: typeof AuthenticatedCosFollowUpsRouteWithChildren
+  AuthenticatedCosLearningRoute: typeof AuthenticatedCosLearningRoute
+  AuthenticatedCosPipelineRoute: typeof AuthenticatedCosPipelineRoute
+  AuthenticatedCosPredictRoute: typeof AuthenticatedCosPredictRoute
+  AuthenticatedCosSalaryRoute: typeof AuthenticatedCosSalaryRoute
+  AuthenticatedCosSkillsHubRoute: typeof AuthenticatedCosSkillsHubRoute
+}
+
+const AuthenticatedCosRouteChildren: AuthenticatedCosRouteChildren = {
+  AuthenticatedCosAnalyticsRoute: AuthenticatedCosAnalyticsRoute,
+  AuthenticatedCosAtsScoreRoute: AuthenticatedCosAtsScoreRoute,
+  AuthenticatedCosCareerPathRoute: AuthenticatedCosCareerPathRoute,
+  AuthenticatedCosCvVersionsRoute: AuthenticatedCosCvVersionsRoute,
+  AuthenticatedCosEmployersRoute: AuthenticatedCosEmployersRoute,
+  AuthenticatedCosFollowUpsRoute: AuthenticatedCosFollowUpsRouteWithChildren,
+  AuthenticatedCosLearningRoute: AuthenticatedCosLearningRoute,
+  AuthenticatedCosPipelineRoute: AuthenticatedCosPipelineRoute,
+  AuthenticatedCosPredictRoute: AuthenticatedCosPredictRoute,
+  AuthenticatedCosSalaryRoute: AuthenticatedCosSalaryRoute,
+  AuthenticatedCosSkillsHubRoute: AuthenticatedCosSkillsHubRoute,
+}
+
+const AuthenticatedCosRouteWithChildren =
+  AuthenticatedCosRoute._addFileChildren(AuthenticatedCosRouteChildren)
 
 interface AuthenticatedMarketplaceRouteChildren {
   AuthenticatedMarketplaceIdRoute: typeof AuthenticatedMarketplaceIdRoute
@@ -498,6 +840,7 @@ const AuthenticatedMarketplaceRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedApplicationsRoute: typeof AuthenticatedApplicationsRoute
   AuthenticatedConfigurationRoute: typeof AuthenticatedConfigurationRoute
+  AuthenticatedCosRoute: typeof AuthenticatedCosRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedErrorReportRoute: typeof AuthenticatedErrorReportRoute
   AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
@@ -515,6 +858,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedApplicationsRoute: AuthenticatedApplicationsRoute,
   AuthenticatedConfigurationRoute: AuthenticatedConfigurationRoute,
+  AuthenticatedCosRoute: AuthenticatedCosRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedErrorReportRoute: AuthenticatedErrorReportRoute,
   AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
@@ -536,6 +880,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  HelpRoute: HelpRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,

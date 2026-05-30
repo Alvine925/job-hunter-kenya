@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import {
   ArrowRight,
-  Gift,
   Link as LinkIcon,
   Linkedin,
   Mail,
-  Sparkles,
   UserPlus,
   X,
 } from "lucide-react";
@@ -71,25 +69,25 @@ export function ReferralLimitModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] w-[calc(100vw-1.5rem)] gap-0 overflow-hidden overflow-y-auto border-0 bg-white p-0 shadow-2xl shadow-slate-950/35 sm:max-w-[640px] sm:rounded-2xl [&>button]:hidden">
-        <div className="relative min-h-[190px] overflow-hidden bg-slate-950 sm:min-h-[250px]">
+      <DialogContent className="max-h-[88svh] sm:max-h-[90vh] w-[min(86vw,320px)] gap-0 overflow-y-auto overflow-x-hidden border-0 bg-white p-0 shadow-2xl shadow-slate-950/35 sm:w-auto sm:max-w-[640px] rounded-xl sm:rounded-2xl [&>button]:hidden mx-auto">
+        <div className="relative min-h-[180px] overflow-hidden bg-slate-950 sm:min-h-[250px]">
           <img
             src={welcomeImage}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/5" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/5 pointer-events-none" />
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-950 shadow-lg backdrop-blur transition hover:bg-white"
+            className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-950 shadow-lg backdrop-blur transition hover:bg-white"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
 
-          <div className="absolute inset-0 flex items-center px-5 py-5 sm:px-8">
-            <div className="max-w-[310px] text-white">
+          <div className="absolute inset-0 flex items-center px-3 py-3 sm:px-8">
+            <div className="max-w-[80%] sm:max-w-[310px] text-white">
               <div className="mb-4 flex items-center gap-2">
                 <span className="flex h-4 items-end gap-0.5 text-[#FD5D28]" aria-hidden="true">
                   <span className="h-1.5 w-1 rounded-full bg-current" />
@@ -100,10 +98,10 @@ export function ReferralLimitModal({
                   Tellus Workspace
                 </span>
               </div>
-              <DialogTitle className="text-2xl font-black leading-tight tracking-tight sm:text-4xl">
+              <DialogTitle className="text-lg font-black leading-tight tracking-tight sm:text-4xl">
                 You&apos;re nearing your limit ⚡
               </DialogTitle>
-              <p className="mt-3 max-w-[270px] text-xs font-medium leading-5 text-white/90 sm:text-sm">
+              <p className="mt-2 max-w-[260px] sm:max-w-[310px] text-xs font-medium leading-5 text-white/90 sm:mt-3 sm:text-sm hidden sm:block">
                 Nice work, {firstName}. You used your first {actionLabel}. Invite a colleague to
                 unlock more workspace access.
               </p>
@@ -127,84 +125,57 @@ export function ReferralLimitModal({
           </div>
         </div>
 
-        <div className="space-y-4 px-5 py-5 sm:px-8">
-          <section className="rounded-lg border border-slate-200 p-4 shadow-sm">
-            <h3 className="text-sm font-black text-slate-950">
-              Invite a colleague. Unlock more.
-            </h3>
-            <div className="mt-4 grid grid-cols-3 divide-x divide-slate-200">
-              {[
-                { icon: UserPlus, title: "+1 access", body: "Unlock more room." },
-                { icon: Sparkles, title: "Stronger", body: "Build together." },
-                { icon: Gift, title: "Win-win", body: "They get access." },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div key={item.title} className="px-2 text-center first:pl-0 last:pr-0">
-                    <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#FFF0EA] text-[#FD5D28]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <p className="mt-3 text-[11px] font-black text-slate-950 sm:text-xs">
-                      {item.title}
-                    </p>
-                    <p className="mt-1 text-[10px] font-medium leading-4 text-slate-500">
-                      {item.body}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+        <div className="space-y-3 px-3 py-3 pb-6 sm:px-8 sm:pb-8">
 
-          <section className="rounded-lg border border-slate-200 p-4 shadow-sm">
+          <section className="rounded-lg border border-slate-200 p-2 sm:p-4 shadow-sm">
             <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold text-slate-700">Your referral link</p>
-                <div className="mt-2 flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 gap-y-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
                   <LinkIcon className="h-4 w-4 shrink-0 text-slate-400" />
-                  <span className="truncate text-xs font-semibold text-slate-600">
+                  <span className="text-xs font-semibold text-slate-600 flex-1 min-w-0 break-all">
                     {referralLink}
                   </span>
                   <button
                     onClick={copyLink}
-                    className="shrink-0 rounded-md bg-[#FD5D28] px-3 py-1.5 text-[11px] font-black text-white transition hover:bg-[#E94F1F]"
+                    className="shrink-0 rounded-md bg-[#FD5D28] px-2 py-1.5 text-[10px] font-black text-white transition hover:bg-[#E94F1F] sm:px-3 sm:text-[11px]"
                   >
                     {copied ? "Copied" : "Copy"}
                   </button>
                 </div>
                 <p className="mt-4 text-[11px] font-bold text-slate-700">Share via</p>
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex gap-2 flex-wrap">
                   <a
                     href={shareLinks.email}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:text-[#FD5D28]"
+                    className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:text-[#FD5D28]"
                     aria-label="Share by email"
                   >
-                    <Mail className="h-4 w-4" />
+                    <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </a>
                   <a
                     href={shareLinks.linkedin}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-blue-600 transition hover:bg-blue-50"
+                    className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-blue-600 transition hover:bg-blue-50"
                     aria-label="Share on LinkedIn"
                   >
-                    <Linkedin className="h-4 w-4" />
+                    <Linkedin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </a>
                   <a
                     href={shareLinks.whatsapp}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-emerald-600 transition hover:bg-emerald-50"
+                    className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-emerald-600 transition hover:bg-emerald-50"
                     aria-label="Share on WhatsApp"
                   >
-                    <span className="text-xs font-black">WA</span>
+                    <span className="text-[11px] sm:text-xs font-black">WA</span>
                   </a>
                   <button
                     onClick={copyLink}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:text-[#FD5D28]"
+                    className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:text-[#FD5D28]"
                     aria-label="Copy referral link"
                   >
-                    <LinkIcon className="h-4 w-4" />
+                    <LinkIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </button>
                 </div>
               </div>
@@ -216,8 +187,13 @@ export function ReferralLimitModal({
           </section>
 
           <Button
-            onClick={copyLink}
-            className="h-11 w-full rounded-lg bg-[#FD5D28] text-sm font-black shadow-lg shadow-orange-500/20 hover:bg-[#E94F1F]"
+            onClick={() => {
+              onOpenChange(false);
+              window.setTimeout(() => {
+                window.location.href = "/settings?tab=referral";
+              }, 0);
+            }}
+            className="h-10 w-full rounded-lg bg-[#FD5D28] text-sm font-black shadow-lg shadow-orange-500/20 hover:bg-[#E94F1F]"
           >
             Invite & unlock more access
             <ArrowRight className="h-4 w-4" />

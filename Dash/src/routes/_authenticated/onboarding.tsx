@@ -295,7 +295,7 @@ function OnboardingWizard() {
   // Step 3: Integrations connect handler
   const handleConnectGoogle = async () => {
     setConnecting(true);
-    window.location.href = "/api/auth/google-init";
+    window.location.href = "/api/auth/google-init?connect=1";
   };
 
   const handleSkipIntegrations = () => {
@@ -311,7 +311,9 @@ function OnboardingWizard() {
         clearOnboardingCache();
       }
       localStorage.setItem("onboarding_completed", "true");
-      navigate({ to: "/marketplace", replace: true });
+      const target = localStorage.getItem("post_auth_redirect") || "/marketplace";
+      localStorage.removeItem("post_auth_redirect");
+      navigate({ to: target, replace: true });
     } catch (e) {
       console.error(e);
       toast.error("Failed to update onboarding status");
@@ -325,7 +327,9 @@ function OnboardingWizard() {
         clearOnboardingCache();
       }
       localStorage.setItem("onboarding_completed", "true");
-      navigate({ to: "/profile", replace: true });
+      const target = localStorage.getItem("post_auth_redirect") || "/profile";
+      localStorage.removeItem("post_auth_redirect");
+      navigate({ to: target, replace: true });
     } catch (e) {
       console.error(e);
       toast.error("Failed to update onboarding status");
@@ -350,10 +354,10 @@ function OnboardingWizard() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-transparent px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-[100svh] flex flex-col bg-transparent px-4 py-6 sm:px-6 lg:px-8 overflow-y-auto">
       
       {/* ── Stepper progress indicator header ── */}
-      <div className="w-full max-w-md mx-auto mb-10">
+      <div className="w-full max-w-md mx-auto mb-6 sm:mb-10">
         <div className="flex items-center justify-between relative px-2">
           {steps.map((stepItem, index) => {
             const isActive = stepItem.id === currentStep;
@@ -404,7 +408,7 @@ function OnboardingWizard() {
       </div>
 
       {/* ── Main wizard content panel ── */}
-      <div className="flex-1 flex items-center justify-center w-full max-w-md mx-auto py-4">
+      <div className="flex-1 flex items-start justify-start md:items-center md:justify-center w-full max-w-md mx-auto py-2 sm:py-4">
         
         {/* STEP 1: SET PASSWORD */}
         {currentStep === "password" && (
@@ -753,7 +757,7 @@ function OnboardingWizard() {
               </p>
             </div>
 
-            <div className="space-y-3 max-w-sm mx-auto">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-1 max-w-sm mx-auto">
               {/* If skipped CV earlier, provide a quick upload CV prompt */}
               {!profileData?.profile?.cv_storage_path && (
                 <Button

@@ -18,8 +18,8 @@ export const Route = createFileRoute("/_authenticated/marketplace/")({
   // compete with the first paint when the sidebar link is clicked.
   beforeLoad: () => {
     queryClient.prefetchQuery({
-      queryKey: ["scraped_jobs", "all"],
-      queryFn: () => listScrapedJobs({ limit: 200 }),
+      queryKey: ["scraped_jobs", "all", "full"],
+      queryFn: () => listScrapedJobs(),
       staleTime: MARKETPLACE_STALE_MS,
     });
   },

@@ -134,14 +134,14 @@ function extractBearerToken(req: Request): string | null {
   return null;
 }
 
-/** True when token is a Supabase JWT for this project's service_role (or anon). */
-function isProjectSupabaseJwt(token: string, role: "service_role" | "anon"): boolean {
+/** True when token is a Supabase JWT for this project's service_role. */
+function isProjectServiceRoleJwt(token: string): boolean {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return false;
     const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const payload = JSON.parse(atob(b64)) as { role?: string; ref?: string; iss?: string };
-    if (payload.role !== role) return false;
+    if (payload.role !== "service_role") return false;
     const url = Deno.env.get("SUPABASE_URL") ?? "";
     const ref = url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
     if (ref && payload.ref && payload.ref !== ref) return false;
@@ -154,7 +154,7 @@ function isProjectSupabaseJwt(token: string, role: "service_role" | "anon"): boo
   }
 }
 
-/** Accept service role, anon, cron secret, or apikey header (Supabase dashboard / curl). */
+/** Accept only private cron/manual/service-role secrets. Never accept publishable/anon keys. */
 export function authorizeRequest(req: Request): Response | null {
   const bearer = extractBearerToken(req);
   const apikey = req.headers.get("apikey")?.trim() ?? null;
@@ -165,13 +165,11 @@ export function authorizeRequest(req: Request): Response | null {
       Deno.env.get("CRON_SECRET"),
       Deno.env.get("SCRAPE_MANUAL_SECRET"),
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
-      Deno.env.get("SUPABASE_ANON_KEY"),
     ].filter((v): v is string => !!v && v.length > 0),
   );
 
   if (token && allowed.has(token)) return null;
-  if (token && isProjectSupabaseJwt(token, "service_role")) return null;
-  if (token && isProjectSupabaseJwt(token, "anon")) return null;
+  if (token && isProjectServiceRoleJwt(token)) return null;
 
   const scrapeHeader = req.headers.get("x-scrape-secret");
   const manualSecret = Deno.env.get("SCRAPE_MANUAL_SECRET");

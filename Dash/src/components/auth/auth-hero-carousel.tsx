@@ -40,25 +40,39 @@ function HeroSlideContent({
       />
       <div
         className={cn(
-          "absolute inset-x-0 top-0 z-10 text-white",
-          compact ? "p-5" : "max-w-xl p-10 xl:p-14",
+          "absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/92 via-white/72 to-white/0 backdrop-blur-[1px] dark:from-slate-950/88 dark:via-slate-950/60 dark:to-slate-950/0",
+          compact ? "h-36" : "h-64",
+        )}
+        aria-hidden="true"
+      />
+      <div
+        className={cn(
+          "absolute inset-x-0 top-0 z-20",
+          compact ? "p-5" : "max-w-lg p-10 xl:p-14",
         )}
       >
         <div className={cn("flex items-center", compact ? "mb-3" : "mb-6")}>
-          <span className="text-sm font-semibold uppercase tracking-wide text-white/90">
+          <span
+            className={cn(
+              "font-black uppercase tracking-wide text-[#FD5D28]",
+              compact ? "text-xl" : "text-3xl xl:text-4xl",
+            )}
+          >
             Tellus
           </span>
         </div>
         <h2
           className={cn(
-            "font-bold leading-tight tracking-tight",
-            compact ? "text-lg" : "text-3xl xl:text-4xl",
+            "font-extrabold leading-tight tracking-tight text-[#D94716]",
+            compact ? "text-sm" : "text-xl xl:text-2xl",
           )}
         >
           {slide.title}
         </h2>
         {!compact && (
-          <p className="mt-4 text-base leading-relaxed text-white/90">{slide.body}</p>
+          <p className="mt-3 max-w-md text-sm font-semibold leading-relaxed text-slate-700">
+            {slide.body}
+          </p>
         )}
       </div>
     </div>
@@ -145,7 +159,7 @@ export function AuthHeroCarousel({
             onClick={() => api?.scrollTo(i)}
             className={cn(
               "h-1.5 rounded-full transition-all",
-              i === active ? "w-6 bg-primary" : "w-1.5 bg-white/40 hover:bg-white/60",
+              i === active ? "w-6 bg-[#FD5D28]" : "w-1.5 bg-[#FD5D28]/30 hover:bg-[#FD5D28]/50",
             )}
           />
         ))}

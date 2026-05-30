@@ -29,7 +29,8 @@ export function ClientAuthGuard({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
         resetAuthReady();
-        navigate({ to: "/login", replace: true });
+        const redirect = window.location.pathname + window.location.search;
+        navigate({ to: "/login", search: { redirect, reason: "session_expired" }, replace: true });
       }
     });
 

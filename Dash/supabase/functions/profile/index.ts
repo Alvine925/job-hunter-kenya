@@ -4,6 +4,7 @@ import { requireAuth } from "../_shared/supabase.ts";
 import { errorResponse } from "../_shared/error-sanitizer.ts";
 import { aiJson } from "../_shared/ai.ts";
 import { encodeBase64 } from "https://deno.land/std@0.203.0/encoding/base64.ts";
+import { runAtsScoreAgent } from "../_shared/job-agents.ts";
 
 serve(async (req) => {
   const origin = req.headers.get("origin");
@@ -332,6 +333,32 @@ serve(async (req) => {
       });
       
       return new Response(JSON.stringify({ profile: prof, extracted }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ---- ATS ANALYZE ----
+    if (action === "ats-analyze") {
+      const { cv_text, jd_text } = body;
+      if (!cv_text || !jd_text) {
+        throw new Error("Missing CV text or Job Description text");
+      }
+
+      console.log(`Running ATS analysis for user ${userId}...`);
+      const analysis = await runAtsScoreAgent({ cvText: cv_text, jdText: jd_text });
+
+      // Track usage log
+      try {
+        await supabase.rpc("track_user_usage", {
+          p_user_id: userId,
+          p_action_type: "ats_analysis",
+          p_metadata: { cv_length: cv_text.length, jd_length: jd_text.length }
+        });
+      } catch (trackErr) {
+        console.warn("Failed to track ATS usage:", trackErr);
+      }
+
+      return new Response(JSON.stringify({ analysis }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

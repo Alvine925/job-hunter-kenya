@@ -41,7 +41,12 @@ export async function handleGoogleInit(
   env: unknown,
 ): Promise<Response> {
   const clientId = getEnvVar(env, "CLIENT_ID");
-  const origin = new URL(request.url).origin;
+  const urlForInit = new URL(request.url);
+  const origin = urlForInit.origin;
+  const connectMode = (() => {
+    const v = urlForInit.searchParams.get("connect");
+    return v === "1" || v === "true";
+  })();
   const redirectUri = `${origin}/api/auth/google-callback`;
 
   if (!clientId) {
@@ -83,15 +88,17 @@ export async function handleGoogleInit(
       });
     }
 
+    const baseScopes = "openid email profile";
+    const elevatedScopes =
+      " https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/documents";
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: "code",
-      scope:
-        "openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/documents",
+      scope: connectMode ? baseScopes + elevatedScopes : baseScopes,
       state: stateToken,
-      access_type: "offline",
-      prompt: "consent",
+      access_type: connectMode ? "offline" : "online",
+      prompt: connectMode ? "consent" : "select_account",
     });
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
@@ -249,6 +256,11 @@ export async function handleGoogleCallback(
     }
 
     const tokenData = await tokenResponse.json();
+    const scopesGranted = typeof tokenData.scope === "string" ? tokenData.scope : "";
+    const hasElevatedScopes =
+      scopesGranted.includes("gmail.send") ||
+      scopesGranted.includes("drive.file") ||
+      scopesGranted.includes("documents");
     const googleAccessToken = tokenData.access_token;
     const googleRefreshToken = tokenData.refresh_token;
 
@@ -318,8 +330,8 @@ export async function handleGoogleCallback(
         state_token: sessionKey,
         access_token: accessToken,
         refresh_token: refreshToken || null,
-        google_access_token: googleAccessToken,
-        google_refresh_token: googleRefreshToken || null,
+        google_access_token: hasElevatedScopes ? googleAccessToken : null,
+        google_refresh_token: hasElevatedScopes ? (googleRefreshToken || null) : null,
         ref_code: refCode || null,
         user_id: userId || null,
         // Short TTL for token exchange

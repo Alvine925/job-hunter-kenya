@@ -163,12 +163,13 @@ serve(async (req) => {
     }
 
     if (action === "update-draft") {
-      const { applicationId, email_subject, email_body, cover_letter, application_email } = body;
+      const { applicationId, email_subject, email_body, cover_letter, tailored_cv, application_email } = body;
       if (!applicationId) throw new Error("Missing applicationId");
       const patch: Record<string, unknown> = { status: "draft" };
       if (email_subject !== undefined) patch.email_subject = email_subject;
       if (email_body !== undefined) patch.email_body = email_body;
       if (cover_letter !== undefined) patch.cover_letter = cover_letter;
+      if (tailored_cv !== undefined) patch.tailored_cv = tailored_cv;
       if (application_email !== undefined) {
         const email =
           typeof application_email === "string" && application_email.includes("@") &&

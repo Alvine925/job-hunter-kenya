@@ -63,18 +63,18 @@ export function MarketplaceFilters({
     <div
       className={
         isStack
-          ? "flex flex-col gap-3"
-          : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3"
+          ? "flex flex-col gap-2"
+          : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2"
       }
     >
       {showSearch && (
         <div className={isStack ? "w-full" : "relative sm:col-span-2 lg:col-span-2"}>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             placeholder="Search title, description..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="pl-10 h-10 sm:h-9 bg-background border-border/80 w-full text-sm sm:text-xs"
+            className="pl-8 h-9 sm:h-8 bg-background border-border/80 w-full text-xs sm:text-[11px]"
           />
         </div>
       )}
@@ -113,7 +113,7 @@ export function MarketplaceFilters({
       />
 
       <Select value={dateFilter} onValueChange={setDateFilter}>
-        <SelectTrigger className="h-10 sm:h-9 bg-background border-border/80 text-sm sm:text-xs w-full">
+        <SelectTrigger className="h-9 sm:h-8 bg-background border-border/80 text-xs sm:text-[11px] w-full">
           <SelectValue placeholder="Date Posted" />
         </SelectTrigger>
         <SelectContent>
@@ -133,10 +133,13 @@ export function MarketplaceFilters({
       </Select>
 
       <Select value={sortBy} onValueChange={setSortBy}>
-        <SelectTrigger className="h-10 sm:h-9 bg-background border-border/80 text-sm sm:text-xs w-full">
+        <SelectTrigger className="h-9 sm:h-8 bg-background border-border/80 text-xs sm:text-[11px] w-full">
           <SelectValue placeholder="Sort By" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="match_score" className="text-xs">
+            Match score (highest first)
+          </SelectItem>
           <SelectItem value="newest" className="text-xs">
             Newest first
           </SelectItem>
@@ -182,7 +185,7 @@ function FilterSelect({
 
   return (
     <Select value={value} onValueChange={onChange} onOpenChange={setOpen}>
-      <SelectTrigger className="h-10 sm:h-9 bg-background border-border/80 text-sm sm:text-xs w-full">
+      <SelectTrigger className="h-9 sm:h-8 bg-background border-border/80 text-xs sm:text-[11px] w-full">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

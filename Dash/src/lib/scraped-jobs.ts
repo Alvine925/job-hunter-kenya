@@ -32,6 +32,7 @@ export type ScrapedJob = {
   logo_url?: string | null;
   match_score?: number;
   match_reason?: string;
+  match_score_cache?: Record<string, { score: number; reason: string; strengths: string; gaps: string; scored_at: string }>;
 };
 
 export const MARKETPLACE_BOARDS = [
@@ -68,7 +69,10 @@ const SCRAPED_JOB_LIST_SELECT = [
   "education_level",
   "scraped_at",
   "logo_url",
+  "match_score_cache",
 ].join(", ");
+
+const SCRAPED_JOBS_PAGE_SIZE = 1000;
 
 export function boardLabel(job: ScrapedJob): string {
   const src = job.source?.trim();
@@ -93,23 +97,40 @@ export async function listScrapedJobs(opts?: {
   search?: string;
   limit?: number;
 }): Promise<ScrapedJob[]> {
-  let q = supabase
-    .from("scraped_jobs")
-    .select(SCRAPED_JOB_LIST_SELECT)
-    .order("scraped_at", { ascending: false })
-    .limit(opts?.limit ?? 500);
+  const rows: ScrapedJob[] = [];
+  const requestedLimit = opts?.limit;
+  let from = 0;
 
-  if (opts?.source && opts.source !== "all") {
-    q = q.or(`source.eq.${opts.source},site.eq.${opts.source}`);
+  while (requestedLimit == null || rows.length < requestedLimit) {
+    const remaining =
+      requestedLimit == null
+        ? SCRAPED_JOBS_PAGE_SIZE
+        : Math.min(SCRAPED_JOBS_PAGE_SIZE, requestedLimit - rows.length);
+    if (remaining <= 0) break;
+
+    let q = supabase
+      .from("scraped_jobs")
+      .select(SCRAPED_JOB_LIST_SELECT)
+      .order("scraped_at", { ascending: false })
+      .range(from, from + remaining - 1);
+
+    if (opts?.source && opts.source !== "all") {
+      q = q.or(`source.eq.${opts.source},site.eq.${opts.source}`);
+    }
+
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+
+    const batch = (data ?? []) as unknown as ScrapedJob[];
+    rows.push(...batch);
+    if (batch.length < remaining) break;
+    from += batch.length;
   }
 
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
-
-  let rows = (data ?? []) as unknown as ScrapedJob[];
   const term = opts?.search?.trim().toLowerCase();
+  let filteredRows = rows;
   if (term) {
-    rows = rows.filter(
+    filteredRows = filteredRows.filter(
       (j) =>
         j.title?.toLowerCase().includes(term) ||
         j.company?.toLowerCase().includes(term) ||
@@ -118,7 +139,7 @@ export async function listScrapedJobs(opts?: {
   }
   
   // Filter out raw deadline_text (too short, only IDs, or HTML)
-  rows = rows.filter((j) => {
+  filteredRows = filteredRows.filter((j) => {
     const deadlineText = (j.deadline_text ?? "").trim();
     if (!deadlineText) return true; // Allow empty deadline_text
     
@@ -130,7 +151,7 @@ export async function listScrapedJobs(opts?: {
     return true;
   });
   
-  return rows;
+  return filteredRows;
 }
 
 export async function getScrapedJob(id: string): Promise<ScrapedJob | null> {

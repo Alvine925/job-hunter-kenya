@@ -18,7 +18,7 @@ export function MarketplaceInsightsPanel({
   hasSkills,
 }: Props) {
   return (
-    <section className="rounded-xl border border-border/80 bg-background p-4 sm:p-5 space-y-5 shadow-sm">
+    <section className="max-sm:bg-transparent max-sm:border-0 max-sm:shadow-none max-sm:px-1 max-sm:py-2 rounded-xl sm:border sm:border-border/80 sm:bg-background p-4 sm:p-5 space-y-5 sm:shadow-sm">
       <div>
         <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5">
           <TrendingUp className="w-4 h-4 text-primary shrink-0" />

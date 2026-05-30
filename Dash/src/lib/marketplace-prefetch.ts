@@ -6,6 +6,8 @@ const MARKETPLACE_STALE_MS = 60_000;
 
 /** Query roots that hold per-user data — must not leak across accounts on the same browser. */
 const USER_SCOPED_QUERY_ROOTS = [
+  "auth_user",
+  "onboarding_user",
   "jobs",
   "saved-jobs",
   "job",
@@ -27,6 +29,9 @@ export function clearUserScopedQueries(queryClient: QueryClient) {
   for (const root of USER_SCOPED_QUERY_ROOTS) {
     queryClient.removeQueries({ queryKey: [root] });
   }
+  // Also clear scraped_jobs cache so it refetches with the new auth state
+  // (guest may have cached zero rows due to RLS restrictions)
+  queryClient.removeQueries({ queryKey: ["scraped_jobs"] });
 }
 
 /**
@@ -37,8 +42,8 @@ export function clearUserScopedQueries(queryClient: QueryClient) {
 export async function prefetchMarketplaceQueries(queryClient: QueryClient) {
   await Promise.all([
     queryClient.prefetchQuery({
-      queryKey: ["scraped_jobs", "all"],
-      queryFn: () => listScrapedJobs({ limit: 200 }),
+      queryKey: ["scraped_jobs", "all", "full"],
+      queryFn: () => listScrapedJobs(),
       staleTime: MARKETPLACE_STALE_MS,
     }),
     queryClient.prefetchQuery({

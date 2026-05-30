@@ -13,14 +13,30 @@ import {
   Store,
   MessageSquare,
   ChevronDown,
+  ChevronUp,
   LucideIcon,
   ChevronsLeft,
   ChevronRight,
   ArrowRight,
+  ArrowLeft,
   CalendarDays,
   Menu,
   X,
   Lock,
+  GitBranch,
+  BarChart3,
+  Brain,
+  TrendingUp,
+  Zap,
+  ShieldCheck,
+  DollarSign,
+  Building,
+  Compass,
+  MailCheck,
+  Target,
+  PieChart,
+  GraduationCap,
+  CircleHelp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { resetAuthReady } from "@/lib/auth-session";
@@ -51,6 +67,59 @@ import {
 } from "@/components/ui/dialog";
 
 const POST_LOGIN_WELCOME_KEY = "tellus_show_welcome_after_login";
+const WELCOME_SEEN_PREFIX = "tellus_welcome_seen_";
+
+function GuestAccessPrompt({
+  compact = false,
+  onClick,
+}: {
+  compact?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "shrink-0 rounded-xl border border-slate-200/70 bg-white/70 shadow-sm shadow-slate-200/40 dark:border-slate-800/80 dark:bg-slate-950/35 dark:shadow-none",
+        compact ? "mx-2 mb-2 p-3" : "mx-4 mb-4 p-4",
+      )}
+    >
+      <div className="flex items-start gap-2.5">
+        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#FD5D28]/10 text-[#FD5D28]">
+          <ShieldCheck className="size-3.5" aria-hidden="true" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              "font-extrabold leading-tight text-slate-900 dark:text-white",
+              compact ? "text-[11px]" : "text-sm",
+            )}
+          >
+            Save your job search
+          </p>
+          <p
+            className={cn(
+              "mt-1 font-medium leading-snug text-slate-500 dark:text-slate-400",
+              compact ? "text-[10px]" : "text-xs",
+            )}
+          >
+            Sign in to keep matches, letters, and applications synced.
+          </p>
+        </div>
+      </div>
+      <Button
+        onClick={onClick}
+        variant="outline"
+        className={cn(
+          "mt-3 w-full justify-between rounded-lg border-slate-200 bg-white font-bold text-slate-800 shadow-none hover:border-[#FD5D28]/40 hover:bg-[#FD5D28]/5 hover:text-[#FD5D28] dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-100 dark:hover:bg-[#FD5D28]/10",
+          compact ? "h-8 px-2.5 text-[10px]" : "h-9 px-3 text-xs",
+        )}
+      >
+        Sign in
+        <ArrowRight className={cn("shrink-0", compact ? "size-3" : "size-3.5")} aria-hidden="true" />
+      </Button>
+    </div>
+  );
+}
 
 function formatDisplayNamePart(value: string) {
   const normalized = value.trim().toLocaleLowerCase();
@@ -71,11 +140,20 @@ interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
+  badge?: string;
+}
+
+interface NavSubGroup {
+  subLabel: string;
+  items: NavItem[];
 }
 
 interface NavGroup {
   label: string;
-  items: NavItem[];
+  shortLabel?: string;
+  items?: NavItem[];
+  subGroups?: NavSubGroup[];
+  collapsible?: boolean;
 }
 
 type ProfileSummary = {
@@ -92,7 +170,7 @@ type ProfileSummary = {
   work_history?: string | null;
 };
 
-const navGroups: NavGroup[] = [
+const mainNavGroups: NavGroup[] = [
   {
     label: "MAIN",
     items: [
@@ -120,6 +198,46 @@ const navGroups: NavGroup[] = [
     items: [
       { to: "/configuration", label: "Configuration", icon: Settings },
       { to: "/feedback", label: "Feedback", icon: MessageSquare },
+      { to: "/cos/pipeline", label: "Career Operating System", icon: Zap, badge: "New" },
+    ],
+  },
+];
+
+const cosNavGroups: NavGroup[] = [
+  {
+    label: "NAVIGATION",
+    items: [
+      { to: "/dashboard", label: "Back to Main App", icon: ArrowLeft },
+    ],
+  },
+  {
+    label: "PIPELINE CRM",
+    items: [
+      { to: "/cos/pipeline", label: "Lifecycle Tracker", icon: GitBranch, badge: "New" },
+      { to: "/cos/follow-ups", label: "Follow-Ups", icon: MailCheck },
+    ],
+  },
+  {
+    label: "ANALYTICS & INTEL",
+    items: [
+      { to: "/cos/analytics", label: "Conversion Analytics", icon: BarChart3 },
+      { to: "/cos/ats-score", label: "ATS Optimizer", icon: ShieldCheck },
+      { to: "/cos/predict", label: "Success Predictor", icon: Target },
+    ],
+  },
+  {
+    label: "INTELLIGENCE",
+    items: [
+      { to: "/cos/skills-hub", label: "Skills Hub", icon: Brain },
+      { to: "/cos/employers", label: "Employer Intel", icon: Building },
+    ],
+  },
+  {
+    label: "GROWTH",
+    items: [
+      { to: "/cos/career-path", label: "Career Path", icon: Compass },
+      { to: "/cos/cv-versions", label: "CV Versions", icon: PieChart },
+      { to: "/cos/learning", label: "Learning Roadmap", icon: GraduationCap },
     ],
   },
 ];
@@ -127,10 +245,14 @@ const navGroups: NavGroup[] = [
 function getMobilePageTitle(pathname: string): string {
   if (/^\/jobs\/[^/]+/.test(pathname)) return "Job details";
   if (/^\/marketplace\/[^/]+/.test(pathname)) return "Job listing";
-  for (const group of navGroups) {
-    for (const item of group.items) {
-      if (pathname === item.to || (item.to !== "/" && pathname.startsWith(`${item.to}/`))) {
-        return item.label;
+  if (pathname.startsWith("/help")) return "Help";
+  const groups = pathname.startsWith("/cos") ? cosNavGroups : mainNavGroups;
+  for (const group of groups) {
+    if (group.items) {
+      for (const item of group.items) {
+        if (pathname === item.to || (item.to !== "/" && pathname.startsWith(`${item.to}/`))) {
+          return item.label;
+        }
       }
     }
   }
@@ -150,18 +272,17 @@ export function AppLayout() {
   const [isHovered, setIsHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeTitle, setWelcomeTitle] = useState("Welcome back");
+
+  const isCosRoute = loc.pathname.startsWith("/cos");
+  const isHelpRoute = loc.pathname.startsWith("/help");
+  const navGroups = isCosRoute ? cosNavGroups : mainNavGroups;
 
   useEffect(() => {
     const handler = () => setIsMobileMenuOpen((prev) => !prev);
     window.addEventListener("toggle-mobile-sidebar", handler);
     return () => window.removeEventListener("toggle-mobile-sidebar", handler);
   }, []);
-
-  // Profile details
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ["profile"],
-    queryFn: getMyProfile,
-  });
 
   // Auth user to retrieve avatar url from metadata
   const { data: authUser, isLoading: isAuthUserLoading } = useQuery({
@@ -172,10 +293,35 @@ export function AppLayout() {
     },
   });
 
+  // Profile details
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ["profile"],
+    queryFn: getMyProfile,
+    enabled: Boolean(authUser),
+  });
+
+  // Reactively invalidate auth_user + profile when session changes
+  // so the sidebar always reflects the current auth state.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (
+        event === "SIGNED_IN" ||
+        event === "SIGNED_OUT" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "INITIAL_SESSION"
+      ) {
+        queryClient.invalidateQueries({ queryKey: ["auth_user"] });
+        queryClient.invalidateQueries({ queryKey: ["profile"] });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
+
   const profileObj = profile?.profile as ProfileSummary | undefined;
   const isPremium = profileObj
     ? (profileObj as any).current_plan === "upgraded" || ((profileObj as any).active_referrals ?? 0) >= 10
     : false;
+  const hasSession = Boolean(authUser);
 
   // Calculate dynamic profile completeness/strength score (completely accurate & non-generic)
   let profileScore = 0;
@@ -317,9 +463,18 @@ export function AppLayout() {
     if (isProfileLoading || isAuthUserLoading) return;
     if (sessionStorage.getItem(POST_LOGIN_WELCOME_KEY) !== "true") return;
 
+    const welcomeSeenKey = authUser?.id ? `${WELCOME_SEEN_PREFIX}${authUser.id}` : "";
+    const hasSeenWelcome = welcomeSeenKey ? localStorage.getItem(welcomeSeenKey) === "true" : true;
+    const createdAt = authUser?.created_at ? Date.parse(authUser.created_at) : Number.NaN;
+    const isNewAccount =
+      Number.isFinite(createdAt) && Date.now() - createdAt < 24 * 60 * 60 * 1000;
+
+    setWelcomeTitle(!hasSeenWelcome && isNewAccount ? "Welcome" : "Welcome back");
+    if (welcomeSeenKey) localStorage.setItem(welcomeSeenKey, "true");
+
     sessionStorage.removeItem(POST_LOGIN_WELCOME_KEY);
     setWelcomeOpen(true);
-  }, [isAuthUserLoading, isProfileLoading, loc.pathname]);
+  }, [authUser?.created_at, authUser?.id, isAuthUserLoading, isProfileLoading, loc.pathname]);
 
   const matchMarketplace = loc.pathname.match(/^\/marketplace\/([^/]+)/);
   const marketplaceJobId = matchMarketplace ? matchMarketplace[1] : null;
@@ -333,7 +488,7 @@ export function AppLayout() {
   const { data: marketplaceJobData } = useQuery({
     queryKey: ["marketplace-job", marketplaceJobId],
     queryFn: () => getMarketplaceJob(marketplaceJobId!),
-    enabled: isScrapedMarketplaceJobId,
+    enabled: isScrapedMarketplaceJobId && hasSession,
     staleTime: 60_000,
   });
 
@@ -385,7 +540,7 @@ export function AppLayout() {
                     </span>
                   </div>
                   <DialogTitle className="text-xl font-black leading-[1.08] tracking-tight text-white sm:text-3xl">
-                    Welcome back,
+                    {welcomeTitle},
                     <span className="block">{firstName} 👋</span>
                   </DialogTitle>
                   <DialogDescription className="mt-2 max-w-[18rem] text-[11px] font-semibold leading-4 text-white sm:mt-3 sm:max-w-[24rem] sm:text-sm sm:leading-5">
@@ -569,50 +724,71 @@ export function AppLayout() {
             className="sidebar-scroll flex-1 min-h-0 px-3.5 py-3 space-y-5"
             aria-label="Main navigation"
           >
-            {navGroups.map((group) => (
-              <div key={group.label} className="space-y-1.5">
-                {isExpanded && (
-                  <h3 className="text-[10px] font-black text-slate-400/90 dark:text-slate-500/90 tracking-wider px-3 select-none uppercase">
-                    {group.label}
-                  </h3>
-                )}
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const active = loc.pathname.startsWith(item.to);
-                    const Icon = item.icon;
-                    const isLocked = (item.to === "/monitors" || item.to === "/configuration") && !isPremium;
-                    return (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        title={!isExpanded ? item.label : undefined}
-                        className={navLinkClass(active, isExpanded)}
-                      >
-                        {active && isExpanded && (
-                          <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#FD5D28] rounded-r-md" />
-                        )}
-                        <Icon
+            {navGroups.map((group) => {
+              const isWorkspaceNav = group.label === "NAVIGATION";
+              return (
+                <div key={group.label} className="space-y-1.5">
+                  {isExpanded && (
+                    <h3 className="text-[10px] font-black text-slate-400/90 dark:text-slate-500/90 tracking-wider px-3 select-none uppercase">
+                      {group.label}
+                    </h3>
+                  )}
+                  <div className="space-y-0.5">
+                    {group.items?.map((item) => {
+                      const active = loc.pathname.startsWith(item.to);
+                      const Icon = item.icon;
+                      const isLocked = (item.to === "/monitors" || item.to === "/configuration") && !isPremium;
+                      
+                      const isBackToMain = item.to === "/dashboard" && isCosRoute && isWorkspaceNav;
+
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          title={!isExpanded ? item.label : undefined}
                           className={cn(
-                            "w-4.5 h-4.5 shrink-0",
-                            active ? "text-[#FD5D28]" : "text-slate-500 dark:text-slate-400",
+                            navLinkClass(active, isExpanded),
+                            isBackToMain && "bg-slate-200/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300/40 dark:border-slate-800/80"
                           )}
-                        />
-                        {isExpanded && (
-                          <span className="truncate flex-1 flex items-center justify-between">
-                            <span>{item.label}</span>
-                            {isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground/60 ml-2" />}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
+                        >
+                          {active && isExpanded && !isBackToMain && (
+                            <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#FD5D28] rounded-r-md" />
+                          )}
+                          <Icon
+                            className={cn(
+                              "w-4.5 h-4.5 shrink-0",
+                              active ? "text-[#FD5D28]" : "text-slate-500 dark:text-slate-400",
+                            )}
+                          />
+                          {isExpanded && (
+                            <span className="truncate flex-1 flex items-center justify-between">
+                              <span>{item.label}</span>
+                              {isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground/60 ml-2" />}
+                              {item.badge && (
+                                <span className={cn(
+                                  "ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider",
+                                  "bg-[#FD5D28]/10 text-[#FD5D28]"
+                                )}>
+                                  {item.badge}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
 
           {isExpanded && (
-            <ProfileCompletenessCard profileScore={profileScore} missingItems={missingItems} />
+            hasSession ? (
+              <ProfileCompletenessCard profileScore={profileScore} missingItems={missingItems} />
+            ) : (
+              <GuestAccessPrompt compact onClick={() => navigate({ to: "/login" })} />
+            )
           )}
 
           {/* Profile Section (Bottom) */}
@@ -622,69 +798,107 @@ export function AppLayout() {
               !isExpanded ? "p-2" : "p-4",
             )}
           >
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={cn(
-                    "flex items-center rounded-xl hover:bg-slate-100/60 dark:hover:bg-muted/10 w-full text-left cursor-pointer focus:outline-none transition-colors duration-150",
-                    !isExpanded ? "justify-center p-1.5" : "gap-3 p-2",
-                  )}
-                >
-                  <div className="relative shrink-0">
-                    <Avatar className="h-9.5 w-9.5 border border-slate-200/40 dark:border-border/10 shadow-sm">
-                      <AvatarImage src={avatarUrl} alt={name} />
-                      <AvatarFallback className="bg-[#FFE5D8] text-[#FD5D28] font-extrabold text-sm">
-                        {initials || "AO"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#10B981] border-2 border-white dark:border-background rounded-full" />
-                  </div>
-                  {isExpanded && (
-                    <div className="flex-1 min-w-0 flex items-center justify-between">
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-slate-800 dark:text-white truncate text-sm leading-tight">
-                          {name}
-                        </span>
-                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5 leading-none">
-                          {email || "alvine@gmail.com"}
-                        </span>
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 ml-1.5" />
-                    </div>
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align={isExpanded ? "end" : "center"}
-                side="right"
-                className="w-56 z-50"
+            {!hasSession ? (
+              <button
+                onClick={() => navigate({ to: "/login" })}
+                className={cn(
+                  "flex items-center rounded-xl hover:bg-slate-100/60 dark:hover:bg-muted/10 w-full text-left cursor-pointer focus:outline-none transition-colors duration-150",
+                  !isExpanded ? "justify-center p-1.5" : "gap-3 p-2",
+                )}
               >
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                  My Account
+                <div className="relative shrink-0">
+                  <Avatar className="h-9.5 w-9.5 border border-slate-200/40 dark:border-border/10 shadow-sm">
+                    <AvatarFallback className="bg-slate-200 dark:bg-slate-800 text-slate-500 font-extrabold text-sm">
+                      GU
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-slate-300 border-2 border-white dark:border-background rounded-full" />
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/settings" className="flex items-center gap-2 w-full cursor-pointer">
-                    <Settings className="w-4 h-4 shrink-0" />
-                    <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer flex items-center gap-2"
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    resetAuthReady();
-                    queryClient.clear();
-                    clearPersistedQueryCache();
-                    navigate({ to: "/login" });
-                  }}
+                {isExpanded && (
+                  <div className="flex-1 min-w-0 flex items-center justify-between">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-800 dark:text-white truncate text-sm leading-tight">
+                        Guest User
+                      </span>
+                      <span className="text-[11px] text-[#FD5D28] font-bold truncate mt-0.5 leading-none">
+                        Sign in to apply
+                      </span>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#FD5D28] shrink-0 ml-1.5" />
+                  </div>
+                )}
+              </button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "flex items-center rounded-xl hover:bg-slate-100/60 dark:hover:bg-muted/10 w-full text-left cursor-pointer focus:outline-none transition-colors duration-150",
+                      !isExpanded ? "justify-center p-1.5" : "gap-3 p-2",
+                    )}
+                  >
+                    <div className="relative shrink-0">
+                      <Avatar className="h-9.5 w-9.5 border border-slate-200/40 dark:border-border/10 shadow-sm">
+                        <AvatarImage src={avatarUrl} alt={name} />
+                        <AvatarFallback className="bg-[#FFE5D8] text-[#FD5D28] font-extrabold text-sm">
+                          {initials || "AO"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#10B981] border-2 border-white dark:border-background rounded-full" />
+                    </div>
+                    {isExpanded && (
+                      <div className="flex-1 min-w-0 flex items-center justify-between">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-slate-800 dark:text-white truncate text-sm leading-tight">
+                            {name}
+                          </span>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5 leading-none">
+                            {email || "alvine@gmail.com"}
+                          </span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 ml-1.5" />
+                      </div>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align={isExpanded ? "end" : "center"}
+                  side="right"
+                  className="w-56 z-50"
                 >
-                  <LogOut className="w-4 h-4 shrink-0" />
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    My Account
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="flex items-center gap-2 w-full cursor-pointer">
+                      <Settings className="w-4 h-4 shrink-0" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/help" className="flex items-center gap-2 w-full cursor-pointer">
+                      <CircleHelp className="w-4 h-4 shrink-0" />
+                      <span>Help</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer flex items-center gap-2"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      resetAuthReady();
+                      queryClient.clear();
+                      clearPersistedQueryCache();
+                      navigate({ to: "/login" });
+                    }}
+                  >
+                    <LogOut className="w-4 h-4 shrink-0" />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </aside>
       </div>
@@ -723,109 +937,175 @@ export function AppLayout() {
               className="sidebar-scroll flex-1 min-h-0 px-3.5 py-3 space-y-5"
               aria-label="Main navigation"
             >
-              {navGroups.map((group) => (
-                <div key={group.label} className="space-y-1.5">
-                  <h3 className="text-[10px] font-black text-slate-400/90 dark:text-slate-500/90 tracking-wider px-3 select-none uppercase">
-                    {group.label}
-                  </h3>
-                  <div className="space-y-0.5">
-                    {group.items.map((item) => {
-                      const active = loc.pathname.startsWith(item.to);
-                      const Icon = item.icon;
-                      const isLocked = (item.to === "/monitors" || item.to === "/configuration") && !isPremium;
-                      return (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className={navLinkClass(active, true)}
-                        >
-                          {active && (
-                            <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#FD5D28] rounded-r-md" />
-                          )}
-                          <Icon
+              {navGroups.map((group) => {
+                const isWorkspaceNav = group.label === "NAVIGATION";
+                return (
+                  <div key={group.label} className="space-y-1.5">
+                    <h3 className="text-[10px] font-black text-slate-400/90 dark:text-slate-500/90 tracking-wider px-3 select-none uppercase">
+                      {group.label}
+                    </h3>
+                    <div className="space-y-0.5">
+                      {group.items?.map((item) => {
+                        const active = loc.pathname.startsWith(item.to);
+                        const Icon = item.icon;
+                        const isLocked = (item.to === "/monitors" || item.to === "/configuration") && !isPremium;
+                        
+                        const isBackToMain = item.to === "/dashboard" && isCosRoute && isWorkspaceNav;
+
+                        return (
+                          <Link
+                            key={item.to}
+                            to={item.to}
+                            onClick={() => setIsMobileMenuOpen(false)}
                             className={cn(
-                              "w-4.5 h-4.5 shrink-0",
-                              active ? "text-[#FD5D28]" : "text-slate-500 dark:text-slate-400",
+                              navLinkClass(active, true),
+                              isBackToMain && "bg-slate-200/50 dark:bg-slate-800/40 text-[#1E293B] dark:text-slate-200 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300/40 dark:border-slate-800/80"
                             )}
-                          />
-                          <span className="truncate flex-1 flex items-center justify-between">
-                            <span>{item.label}</span>
-                            {isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground/60 ml-2" />}
-                          </span>
-                        </Link>
-                      );
-                    })}
+                          >
+                            {active && !isBackToMain && (
+                              <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#FD5D28] rounded-r-md" />
+                            )}
+                            <Icon
+                              className={cn(
+                                "w-4.5 h-4.5 shrink-0",
+                                active ? "text-[#FD5D28]" : "text-slate-500 dark:text-slate-400",
+                              )}
+                            />
+                            <span className="truncate flex-1 flex items-center justify-between">
+                              <span>{item.label}</span>
+                              {isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground/60 ml-2" />}
+                              {item.badge && (
+                                <span className={cn(
+                                  "ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider",
+                                  "bg-[#FD5D28]/10 text-[#FD5D28]"
+                                )}>
+                                  {item.badge}
+                                </span>
+                              )}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </nav>
 
-            <ProfileCompletenessCard
-              profileScore={profileScore}
-              missingItems={missingItems}
-              onProfileLinkClick={() => setIsMobileMenuOpen(false)}
-            />
+            {hasSession ? (
+              <ProfileCompletenessCard
+                profileScore={profileScore}
+                missingItems={missingItems}
+                onProfileLinkClick={() => setIsMobileMenuOpen(false)}
+              />
+            ) : (
+              <GuestAccessPrompt
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate({ to: "/login" });
+                }}
+              />
+            )}
 
             {/* Profile Section (Bottom) */}
             <div className="border-t border-slate-200/50 dark:border-border/10 shrink-0 p-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center rounded-xl hover:bg-slate-100/60 dark:hover:bg-muted/10 w-full text-left cursor-pointer focus:outline-none transition-colors duration-150 gap-3 p-2">
-                    <div className="relative shrink-0">
-                      <Avatar className="h-9.5 w-9.5 border border-slate-200/40 dark:border-border/10 shadow-sm">
-                        <AvatarImage src={avatarUrl} alt={name} />
-                        <AvatarFallback className="bg-[#FFE5D8] text-[#FD5D28] font-extrabold text-sm">
-                          {initials || "AO"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#10B981] border-2 border-white dark:border-background rounded-full" />
-                    </div>
-                    <div className="flex-1 min-w-0 flex items-center justify-between">
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-slate-800 dark:text-white truncate text-sm leading-tight">
-                          {name}
-                        </span>
-                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5 leading-none">
-                          {email || "alvine@gmail.com"}
-                        </span>
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 ml-1.5" />
-                    </div>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 z-50">
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                    My Account
+              {!hasSession ? (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    navigate({ to: "/login" });
+                  }}
+                  className="flex items-center rounded-xl hover:bg-slate-100/60 dark:hover:bg-muted/10 w-full text-left cursor-pointer focus:outline-none transition-colors duration-150 gap-3 p-2"
+                >
+                  <div className="relative shrink-0">
+                    <Avatar className="h-9.5 w-9.5 border border-slate-200/40 dark:border-border/10 shadow-sm">
+                      <AvatarFallback className="bg-slate-200 dark:bg-slate-800 text-slate-500 font-extrabold text-sm">
+                        GU
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-slate-300 border-2 border-white dark:border-background rounded-full" />
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link
-                      to="/settings"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-2 w-full cursor-pointer"
+                  <div className="flex-1 min-w-0 flex items-center justify-between">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-800 dark:text-white truncate text-sm leading-tight">
+                        Guest User
+                      </span>
+                      <span className="text-[11px] text-[#FD5D28] font-bold truncate mt-0.5 leading-none">
+                        Sign in to apply
+                      </span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-[#FD5D28] shrink-0 ml-1.5" />
+                  </div>
+                </button>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center rounded-xl hover:bg-slate-100/60 dark:hover:bg-muted/10 w-full text-left cursor-pointer focus:outline-none transition-colors duration-150 gap-3 p-2">
+                      <div className="relative shrink-0">
+                        <Avatar className="h-9.5 w-9.5 border border-slate-200/40 dark:border-border/10 shadow-sm">
+                          <AvatarImage src={avatarUrl} alt={name} />
+                          <AvatarFallback className="bg-[#FFE5D8] text-[#FD5D28] font-extrabold text-sm">
+                            {initials || "AO"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#10B981] border-2 border-white dark:border-background rounded-full" />
+                      </div>
+                      <div className="flex-1 min-w-0 flex items-center justify-between">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-slate-800 dark:text-white truncate text-sm leading-tight">
+                            {name}
+                          </span>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5 leading-none">
+                            {email || "alvine@gmail.com"}
+                          </span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 ml-1.5" />
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 z-50">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                      My Account
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link
+                        to="/settings"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 w-full cursor-pointer"
+                      >
+                        <Settings className="w-4 h-4 shrink-0" />
+                        <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        to="/help"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 w-full cursor-pointer"
+                      >
+                        <CircleHelp className="w-4 h-4 shrink-0" />
+                        <span>Help</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer flex items-center gap-2"
+                      onClick={async () => {
+                        setIsMobileMenuOpen(false);
+                        await supabase.auth.signOut();
+                        resetAuthReady();
+                        queryClient.clear();
+                        clearPersistedQueryCache();
+                        navigate({ to: "/login" });
+                      }}
                     >
-                      <Settings className="w-4 h-4 shrink-0" />
-                      <span>Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer flex items-center gap-2"
-                    onClick={async () => {
-                      setIsMobileMenuOpen(false);
-                      await supabase.auth.signOut();
-                      resetAuthReady();
-                      queryClient.clear();
-                      clearPersistedQueryCache();
-                      navigate({ to: "/login" });
-                    }}
-                  >
-                    <LogOut className="w-4 h-4 shrink-0" />
-                    <span>Sign out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                      <LogOut className="w-4 h-4 shrink-0" />
+                      <span>Sign out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>
@@ -839,7 +1119,14 @@ export function AppLayout() {
               variant="ghost"
               size="icon"
               className="h-9 w-9 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer focus-visible:ring-0"
-              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label={isHelpRoute ? "Open help menu" : "Open main menu"}
+              onClick={() => {
+                if (isHelpRoute) {
+                  window.dispatchEvent(new Event("toggle-help-sidebar"));
+                  return;
+                }
+                setIsMobileMenuOpen(true);
+              }}
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -852,45 +1139,65 @@ export function AppLayout() {
           <div className="flex items-center gap-2 shrink-0">
             <NotificationBell />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="relative focus:outline-none cursor-pointer">
-                  <Avatar className="h-8 w-8 border border-slate-200/40 dark:border-border/10 shadow-sm">
-                    <AvatarImage src={avatarUrl} alt={name} />
-                    <AvatarFallback className="bg-[#FFE5D8] text-[#FD5D28] font-extrabold text-xs">
-                      {initials || "AO"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border-2 border-white dark:border-background rounded-full" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 z-50">
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                  My Account
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/settings" className="flex items-center gap-2 w-full cursor-pointer">
-                    <Settings className="w-4 h-4 shrink-0" />
-                    <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer flex items-center gap-2"
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    resetAuthReady();
-                    queryClient.clear();
-                    clearPersistedQueryCache();
-                    navigate({ to: "/login" });
-                  }}
-                >
-                  <LogOut className="w-4 h-4 shrink-0" />
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!hasSession ? (
+              <button
+                onClick={() => navigate({ to: "/login" })}
+                className="relative focus:outline-none cursor-pointer"
+              >
+                <Avatar className="h-8 w-8 border border-slate-200/40 dark:border-border/10 shadow-sm">
+                  <AvatarFallback className="bg-slate-200 dark:bg-slate-800 text-slate-500 font-extrabold text-xs">
+                    GU
+                  </AvatarFallback>
+                </Avatar>
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-slate-300 border-2 border-white dark:border-background rounded-full" />
+              </button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="relative focus:outline-none cursor-pointer">
+                    <Avatar className="h-8 w-8 border border-slate-200/40 dark:border-border/10 shadow-sm">
+                      <AvatarImage src={avatarUrl} alt={name} />
+                      <AvatarFallback className="bg-[#FFE5D8] text-[#FD5D28] font-extrabold text-xs">
+                        {initials || "AO"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border-2 border-white dark:border-background rounded-full" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 z-50">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    My Account
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="flex items-center gap-2 w-full cursor-pointer">
+                      <Settings className="w-4 h-4 shrink-0" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/help" className="flex items-center gap-2 w-full cursor-pointer">
+                      <CircleHelp className="w-4 h-4 shrink-0" />
+                      <span>Help</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer flex items-center gap-2"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      resetAuthReady();
+                      queryClient.clear();
+                      clearPersistedQueryCache();
+                      navigate({ to: "/login" });
+                    }}
+                  >
+                    <LogOut className="w-4 h-4 shrink-0" />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       )}

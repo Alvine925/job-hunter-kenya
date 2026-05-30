@@ -87,7 +87,7 @@ const DEFAULT_SHEET_DRAFT: SheetDraftFilters = {
   companyFilter: "all",
   categoryFilter: "all",
   dateFilter: "all",
-  sortBy: "newest",
+  sortBy: "match_score",
 };
 
 function applyMarketplaceFilters(
@@ -153,7 +153,16 @@ function applyMarketplaceFilters(
   }
 
   pool = [...pool];
-  if (args.sortBy === "newest") {
+  if (args.sortBy === "match_score") {
+    pool.sort((a, b) => {
+      const sa = a.match_score ?? 0;
+      const sb = b.match_score ?? 0;
+      if (sb !== sa) return sb - sa;
+      const da = a.scraped_at ? new Date(a.scraped_at).getTime() : 0;
+      const db = b.scraped_at ? new Date(b.scraped_at).getTime() : 0;
+      return db - da;
+    });
+  } else if (args.sortBy === "newest") {
     pool.sort((a, b) => {
       const da = a.scraped_at ? new Date(a.scraped_at).getTime() : 0;
       const db = b.scraped_at ? new Date(b.scraped_at).getTime() : 0;
@@ -181,13 +190,67 @@ export function MarketplacePageContent() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [professionFilter, setProfessionFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState("match_score");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sheetDraft, setSheetDraft] = useState<SheetDraftFilters>(DEFAULT_SHEET_DRAFT);
   const [filterOptionsReady, setFilterOptionsReady] = useState(false);
   const [isFilterPending, startFilterTransition] = useTransition();
   const listingsSnapshotRef = useRef<ScrapedJob[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Collapsible header on scroll ──
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    // Find the closest scrollable ancestor (the AppLayout <main> with overflow-y-auto)
+    let scrollEl: HTMLElement | Window = window;
+    let el = containerRef.current?.parentElement;
+    while (el) {
+      const style = getComputedStyle(el);
+      if (style.overflowY === "auto" || style.overflowY === "scroll") {
+        scrollEl = el;
+        break;
+      }
+      el = el.parentElement;
+    }
+
+    const THRESHOLD = 10;
+
+    const handleScroll = () => {
+      const currentY =
+        scrollEl instanceof Window ? scrollEl.scrollY : (scrollEl as HTMLElement).scrollTop;
+      const delta = currentY - lastScrollY.current;
+
+      if (Math.abs(delta) < THRESHOLD) return;
+
+      if (delta > 0 && currentY > 60) {
+        setHeaderHidden(true);
+      } else if (delta < 0) {
+        setHeaderHidden(false);
+      }
+
+      lastScrollY.current = currentY;
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll, { passive: true });
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(filter.trim()), 280);
@@ -216,8 +279,8 @@ export function MarketplacePageContent() {
     isError: scrapedError,
     error: scrapedErr,
   } = useQuery({
-    queryKey: ["scraped_jobs", "all"],
-    queryFn: () => listScrapedJobs({ limit: 200 }),
+    queryKey: ["scraped_jobs", "all", "full"],
+    queryFn: () => listScrapedJobs(),
     staleTime: 60_000,
   });
 
@@ -227,6 +290,7 @@ export function MarketplacePageContent() {
   } = useQuery({
     queryKey: ["jobs"],
     queryFn: () => listJobs(),
+    enabled: isAuthenticated,
     staleTime: 60_000,
   });
 
@@ -242,12 +306,12 @@ export function MarketplacePageContent() {
       if (!user) return null;
       const { data: p } = await (supabase as any)
         .from("profiles")
-        .select("skills, desired_roles, full_name, preferred_county, experience_level")
+        .select("id, skills, desired_roles, full_name, preferred_county, experience_level")
         .eq("id", user.id)
         .single();
       return p;
     },
-    enabled: scrapedJobs.length > 0 || Boolean(userJobsData),
+    enabled: isAuthenticated && (scrapedJobs.length > 0 || Boolean(userJobsData)),
     staleTime: 5 * 60_000,
   });
 
@@ -302,6 +366,17 @@ export function MarketplacePageContent() {
     if (!profile) return merged;
 
     return merged.map((job) => {
+      // 1. Check if we have a server-side cached match score for this user
+      const cached = profile.id ? job.match_score_cache?.[profile.id] : null;
+      if (cached && typeof cached.score === "number") {
+        return {
+          ...job,
+          match_score: cached.score,
+          match_reason: cached.reason,
+        };
+      }
+
+      // 2. Fall back to client-side computeJobMatch
       const match = computeJobMatch(job, {
         skills: profile.skills ?? [],
         desiredRoles: profile.desired_roles ?? [],
@@ -496,26 +571,12 @@ export function MarketplacePageContent() {
     [allJobs, filterArgs],
   );
 
-  // Keep showing the previous list while a filter transition runs (prevents blink)
+  // Pagination is handled inside the MarketplaceJobList component now.
+  // We keep showing the previous list while a filter transition runs (prevents blink)
   const listingsForDisplay = isFilterPending ? listingsSnapshotRef.current : filteredJobs;
   if (!isFilterPending) {
     listingsSnapshotRef.current = filteredJobs;
   }
-
-  const sheetDraftResultCount = useMemo(
-    () =>
-      applyMarketplaceFilters(allJobs, {
-        board: sheetDraft.board,
-        search: debouncedSearch,
-        companyFilter: sheetDraft.companyFilter,
-        categoryFilter: sheetDraft.categoryFilter,
-        professionFilter: sheetDraft.professionFilter,
-        dateFilter: sheetDraft.dateFilter,
-        sortBy: sheetDraft.sortBy,
-        professionBuckets,
-      }).length,
-    [allJobs, debouncedSearch, sheetDraft, professionBuckets],
-  );
 
   const isFiltered =
     board !== "all" ||
@@ -524,7 +585,7 @@ export function MarketplacePageContent() {
     categoryFilter !== "all" ||
     professionFilter !== "all" ||
     dateFilter !== "all" ||
-    sortBy !== "newest";
+    sortBy !== "match_score";
 
   const activeFilterCount = [
     board !== "all",
@@ -533,7 +594,7 @@ export function MarketplacePageContent() {
     categoryFilter !== "all",
     professionFilter !== "all",
     dateFilter !== "all",
-    sortBy !== "newest",
+    sortBy !== "match_score",
   ].filter(Boolean).length;
 
   const applyFilter = useCallback((fn: () => void) => {
@@ -599,7 +660,7 @@ export function MarketplacePageContent() {
       setCategoryFilter("all");
       setProfessionFilter("all");
       setDateFilter("all");
-      setSortBy("newest");
+      setSortBy("match_score");
     });
   };
 
@@ -608,9 +669,16 @@ export function MarketplacePageContent() {
   const hasNoListings = !isInitialLoading && !scrapedError && allJobs.length === 0;
 
   return (
-    <div className="min-h-full flex flex-col bg-muted/30 lg:max-h-full lg:overflow-hidden">
+    <div ref={containerRef} className="min-h-full flex flex-col bg-muted/30 lg:max-h-full lg:overflow-hidden">
       {/* ── Page header ── */}
-      <header className="border-b border-border/60 bg-background sticky top-0 z-20 shrink-0">
+      <header
+        ref={headerRef}
+        className={cn(
+          "border-b border-border/60 bg-background sticky top-0 z-20 shrink-0",
+          "transition-transform duration-300 ease-in-out",
+          headerHidden && "-translate-y-full",
+        )}
+      >
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-5 space-y-4">
           {/* Title + CTA */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -619,7 +687,7 @@ export function MarketplacePageContent() {
                 Marketplace
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                {allJobs.length} listings from Kenyan job boards
+                Listings from Kenyan job boards
               </p>
             </div>
             <Link to="/find-jobs" className="shrink-0 w-full sm:w-auto">
@@ -650,12 +718,12 @@ export function MarketplacePageContent() {
           <section aria-label="Search and filters" className="lg:hidden space-y-3">
             <div className="flex gap-2">
               <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
                   placeholder="Search jobs…"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  className="pl-10 h-10 bg-background border-border/80 w-full text-sm"
+                  className="pl-8 h-9 bg-background border-border/80 w-full text-xs"
                 />
               </div>
               <Button
@@ -663,7 +731,7 @@ export function MarketplacePageContent() {
                 variant="outline"
                 onClick={() => setFiltersOpen(true)}
                 className={cn(
-                  "h-10 shrink-0 gap-1.5 px-3",
+                  "h-9 shrink-0 gap-1.5 px-3 text-xs",
                   activeFilterCount > 0 && "border-primary/40 bg-primary/5 text-primary",
                 )}
               >
@@ -730,7 +798,7 @@ export function MarketplacePageContent() {
               Reset
             </Button>
             <Button type="button" className="flex-1" onClick={applySheetFilters}>
-              Apply filters ({sheetDraftResultCount})
+              Apply filters
             </Button>
           </div>
         </SheetContent>
@@ -800,9 +868,8 @@ export function MarketplacePageContent() {
               )}
 
               <div className="flex items-center justify-between gap-2 flex-wrap shrink-0 min-h-[1.75rem]">
-                <p className="text-sm text-muted-foreground tabular-nums transition-all duration-300 ease-out">
-                  <span className="font-semibold text-foreground">{filteredJobs.length}</span>{" "}
-                  {board !== "all" ? `on ${board}` : "listings"}
+                <p className="text-sm text-muted-foreground transition-all duration-300 ease-out">
+                  {board !== "all" ? `On ${board}` : "Listings"}
                 </p>
                 {isFiltered && (
                   <Button
@@ -820,7 +887,7 @@ export function MarketplacePageContent() {
                 className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto max-sm:pb-4"
                 aria-busy={isFilterPending}
               >
-                <MarketplaceJobList jobs={listingsForDisplay} onClearFilters={clearFilters} />
+                <MarketplaceJobList jobs={listingsForDisplay} onClearFilters={clearFilters} isAuthenticated={isAuthenticated} />
               </div>
             </div>
 

@@ -88,14 +88,17 @@ function Dashboard() {
   });
   const name = profileData?.profile?.full_name || "Alvine";
   const firstName = name.split(" ")[0] || "Alvine";
+  const profileId = profileData?.profile?.id;
 
   // Fetch referrals to calculate accurate active count
   const { data: referralsData = [] } = useQuery({
-    queryKey: ["referrals"],
+    queryKey: ["referrals", profileId],
+    enabled: !!profileId,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("referrals")
         .select("id, status")
+        .eq("referrer_user_id", profileId)
         .eq("status", "completed");
       if (error) throw error;
       return data ?? [];

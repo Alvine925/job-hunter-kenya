@@ -39,6 +39,17 @@ let cachedSession: Session | null = null;
 let localOnboardingPassed = false;
 
 export function getCachedSession(): Session | null {
+  if (!cachedSession) return null;
+  try {
+    const payload = JSON.parse(atob(cachedSession.access_token.split(".")[1]));
+    const isExpired = payload.exp * 1000 < Date.now() + 10000; // 10s buffer
+    if (isExpired) {
+      console.log("[auth] getCachedSession: session token expired, treating as null");
+      return null;
+    }
+  } catch (e) {
+    console.warn("[auth] getCachedSession: failed to parse JWT payload:", e);
+  }
   return cachedSession;
 }
 
@@ -52,6 +63,43 @@ export function setPassedOnboarding(passed: boolean) {
 
 export function resetAuthReady() {
   authReadyPromise = null;
+}
+
+export function isAuthSessionError(error: unknown): boolean {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : String(error ?? "");
+  const normalized = message.toLowerCase();
+
+  return [
+    "session expired",
+    "jwt expired",
+    "invalid jwt",
+    "invalid refresh token",
+    "refresh token not found",
+    "auth session missing",
+    "session_not_found",
+    "not authenticated",
+    "user not found",
+    "new row violates row-level security",
+    "row-level security policy",
+  ].some((token) => normalized.includes(token));
+}
+
+export function buildLoginRedirectPath() {
+  if (!isBrowser()) return "/login";
+  const currentPath = window.location.pathname + window.location.search;
+  return `/login?redirect=${encodeURIComponent(currentPath)}&reason=session_expired`;
+}
+
+export function redirectToLoginForExpiredSession() {
+  if (!isBrowser()) return;
+  resetAuthReady();
+  document.cookie = "tellus-session-active=; path=/; max-age=0; SameSite=Lax; Secure";
+  window.location.assign(buildLoginRedirectPath());
 }
 
 /** Manually persist session to localStorage and update cache. */
@@ -113,13 +161,53 @@ export function waitForAuthSession(): Promise<Session | null> {
   if (!isBrowser()) return Promise.resolve(null);
 
   // Fast path: listener already gave us the live session.
+  if (cachedSession) {
+    try {
+      const payload = JSON.parse(atob(cachedSession.access_token.split(".")[1]));
+      const isExpired = payload.exp * 1000 < Date.now() + 10000;
+      if (isExpired) {
+        console.log("[auth] waitForAuthSession: cachedSession is expired, clearing");
+        cachedSession = null;
+        authReadyPromise = null;
+      }
+    } catch (e) {
+      console.warn("[auth] waitForAuthSession: failed to parse cached session:", e);
+      cachedSession = null;
+      authReadyPromise = null;
+    }
+  }
+
   if (cachedSession) return Promise.resolve(cachedSession);
 
   if (!authReadyPromise) {
     authReadyPromise = (async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
       if (error) console.error("[auth] getSession", error);
       if (session) {
+        try {
+          const payload = JSON.parse(atob(session.access_token.split(".")[1]));
+          const isExpired = payload.exp * 1000 < Date.now() + 10000;
+          if (isExpired) {
+            console.log("[auth] waitForAuthSession: loaded session is expired, refreshing");
+            const {
+              data: { session: refreshed },
+              error: refreshErr,
+            } = await supabase.auth.refreshSession();
+            if (!refreshErr && refreshed) {
+              cachedSession = refreshed;
+              return refreshed;
+            }
+            cachedSession = null;
+            return null;
+          }
+        } catch (e) {
+          console.warn("[auth] waitForAuthSession: failed to parse stored session:", e);
+          cachedSession = null;
+          return null;
+        }
         cachedSession = session;
         return session;
       }
@@ -129,7 +217,23 @@ export function waitForAuthSession(): Promise<Session | null> {
         const finish = (s: Session | null) => {
           if (settled) return;
           settled = true;
-          if (s) cachedSession = s;
+          if (s) {
+            try {
+              const payload = JSON.parse(atob(s.access_token.split(".")[1]));
+              const isExpired = payload.exp * 1000 < Date.now() + 10000;
+              if (isExpired) {
+                cachedSession = null;
+                resolve(null);
+                return;
+              }
+            } catch (e) {
+              console.warn("[auth] waitForAuthSession: failed to parse auth listener session:", e);
+              cachedSession = null;
+              resolve(null);
+              return;
+            }
+            cachedSession = s;
+          }
           resolve(s);
         };
 
@@ -144,7 +248,31 @@ export function waitForAuthSession(): Promise<Session | null> {
 
         setTimeout(async () => {
           subscription.unsubscribe();
-          const { data: { session: retry } } = await supabase.auth.getSession();
+          const {
+            data: { session: retry },
+          } = await supabase.auth.getSession();
+          if (retry) {
+            try {
+              const payload = JSON.parse(atob(retry.access_token.split(".")[1]));
+              const isExpired = payload.exp * 1000 < Date.now() + 10000;
+              if (isExpired) {
+                const {
+                  data: { session: refreshed },
+                  error: refreshErr,
+                } = await supabase.auth.refreshSession();
+                if (!refreshErr && refreshed) {
+                  finish(refreshed);
+                  return;
+                }
+                finish(null);
+                return;
+              }
+            } catch (e) {
+              console.warn("[auth] waitForAuthSession: failed to parse retry session:", e);
+              finish(null);
+              return;
+            }
+          }
           finish(retry);
         }, 500);
       });
@@ -230,7 +358,11 @@ export async function getOnboardingStatus(userId: string) {
   }
 
   const [{ data: prof }, { data: integration }] = await Promise.all([
-    supabase.from("profiles").select("cv_storage_path, has_set_password, onboarding_completed").eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("cv_storage_path, has_set_password, onboarding_completed")
+      .eq("id", userId)
+      .maybeSingle(),
     supabase
       .from("user_integrations")
       .select("google_connected")

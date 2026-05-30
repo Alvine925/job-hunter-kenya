@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,34 @@ import { ArrowRight, Loader2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { loginWithPassword } from "@/lib/api";
 
+function safeInternalRedirect(value: string | undefined, fallback?: string) {
+  if (!value) return fallback;
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("://")) return fallback;
+  return value;
+}
+
+function navigateToInternalPath(
+  navigate: ReturnType<typeof useNavigate>,
+  target: string,
+  replace = true,
+) {
+  if (target.includes("?")) {
+    const [path, searchStr] = target.split("?");
+    const searchObj = Object.fromEntries(new URLSearchParams(searchStr));
+    void navigate({ to: path, search: searchObj, replace } as never);
+    return;
+  }
+
+  void navigate({ to: target, replace } as never);
+}
+
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; reason?: string } => {
+    return {
+      redirect: safeInternalRedirect((search.redirect as string) || undefined),
+      reason: search.reason === "session_expired" ? "session_expired" : undefined,
+    };
+  },
   head: () => ({
     title: "Sign In - Tellus Job Intelligence",
     meta: [
@@ -73,6 +100,7 @@ function LoginForm({
   onGoogle,
   onToggleMode,
   onForgotPasswordClick,
+  sessionExpired,
 }: {
   mode: AuthMode;
   fullName: string;
@@ -89,6 +117,7 @@ function LoginForm({
   onGoogle: () => void;
   onToggleMode: () => void;
   onForgotPasswordClick: () => void;
+  sessionExpired?: boolean;
 }) {
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot";
@@ -101,7 +130,9 @@ function LoginForm({
         </div>
 
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Reset your password</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Reset your password
+          </h1>
           <p className="mt-1.5 text-xs text-muted-foreground sm:mt-2 sm:text-sm">
             Enter your email address and we'll send you a recovery link to choose a new password.
           </p>
@@ -168,6 +199,12 @@ function LoginForm({
             : "Sign in to continue your job search"}
         </p>
       </div>
+
+      {sessionExpired && !isSignup && (
+        <div className="mb-5 rounded-lg border border-[#FD5D28]/25 bg-[#FD5D28]/10 p-3 text-sm font-semibold leading-6 text-[#9A3412] dark:text-orange-200">
+          Your session expired. Please log in again to continue.
+        </div>
+      )}
 
       <Button
         onClick={onGoogle}
@@ -336,6 +373,7 @@ const POST_LOGIN_WELCOME_KEY = "tellus_show_welcome_after_login";
 
 function Login() {
   const navigate = useNavigate();
+  const { redirect, reason } = useSearch({ from: "/login" });
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -357,10 +395,24 @@ function Login() {
   }, []);
 
   useEffect(() => {
-    void waitForAuthSession().then((session) => {
-      if (session?.user) navigate({ to: "/marketplace", replace: true });
+    if (reason !== "session_expired") return;
+    toast.info("Please log in again", {
+      description: "Your session expired, so we signed you out safely.",
     });
-  }, [navigate]);
+  }, [reason]);
+
+  useEffect(() => {
+    void waitForAuthSession().then((session) => {
+      if (session?.user) {
+        const target = safeInternalRedirect(
+          redirect || localStorage.getItem("post_auth_redirect") || undefined,
+          "/marketplace",
+        );
+        localStorage.removeItem("post_auth_redirect");
+        navigateToInternalPath(navigate, target);
+      }
+    });
+  }, [navigate, redirect]);
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,11 +437,17 @@ function Login() {
         const params = new URLSearchParams(window.location.search);
         const refCode = params.get("ref") || undefined;
 
+        if (redirect) {
+          localStorage.setItem("post_auth_redirect", redirect);
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: redirect
+              ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`
+              : `${window.location.origin}/auth/callback`,
             data: {
               full_name: trimmedName,
               ref: refCode,
@@ -430,7 +488,13 @@ function Login() {
         sessionStorage.setItem(POST_LOGIN_WELCOME_KEY, "true");
         // Warm the cache in the background — don't block navigation on it.
         void prefetchMarketplaceQueries(queryClient);
-        navigate({ to: "/marketplace", replace: true });
+
+        const target = safeInternalRedirect(
+          redirect || localStorage.getItem("post_auth_redirect") || undefined,
+          "/marketplace",
+        );
+        localStorage.removeItem("post_auth_redirect");
+        navigateToInternalPath(navigate, target);
         return;
       }
     } catch (e: unknown) {
@@ -453,6 +517,19 @@ function Login() {
     try {
       const params = new URLSearchParams(window.location.search);
       const refCode = params.get("ref");
+
+      if (redirect) {
+        localStorage.setItem("post_auth_redirect", safeInternalRedirect(redirect, "/marketplace"));
+      } else {
+        const urlRedirect = params.get("redirect");
+        if (urlRedirect) {
+          localStorage.setItem(
+            "post_auth_redirect",
+            safeInternalRedirect(urlRedirect, "/marketplace"),
+          );
+        }
+      }
+
       const initUrl = refCode
         ? `/api/auth/google-init?ref=${encodeURIComponent(refCode)}`
         : "/api/auth/google-init";
@@ -507,6 +584,7 @@ function Login() {
       handleForgotPasswordClick();
       setError(null);
     },
+    sessionExpired: reason === "session_expired",
   };
 
   const heroMode = mode === "forgot" ? "signin" : mode;
